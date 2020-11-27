@@ -24,3 +24,17 @@ Bluetooth Configuration
 
 The code runs on the ESP32 to provide a web interface with streaming video
 and a joystick/pad to control the robot's drive motors.
+
+# Remaining Work
+
+- [ ] rework the project configuration
+- [ ] rework the WiFi initialization
+- [ ] clean up the camera code
+- [ ] rework the camera acquisitions into a shared/async task
+- [ ] remove duplicate camera code
+- [ ] integrate the Bluetooth code
+- [ ] integrate the robot interface code
+- [ ] add activity LED
+- [ ] limit client access to ensure responsiveness
+- [ ] change streaming video to use pre-acquired frames from the task
+
