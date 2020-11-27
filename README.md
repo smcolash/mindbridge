@@ -12,6 +12,14 @@ and not the higher-level Arduino environment.
 The project needs to be configured before building such that the code knows
 the local WiFi credentials and the Bluetooth SSP name of the robot ot control.
 
+WiFi Configuration
+- ssid
+- password
+- retries
+- name
+Bluetooth Configuration
+- name
+
 ## Operation
 
 The code runs on the ESP32 to provide a web interface with streaming video
