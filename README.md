@@ -13,12 +13,12 @@ The project needs to be configured before building such that the code knows
 the local WiFi credentials and the Bluetooth SSP name of the robot ot control.
 
 WiFi Configuration
-- ssid
-- password
-- retries
-- name
+* ssid
+* password
+* retries
+
 Bluetooth Configuration
-- name
+* name
 
 ## Operation
 
