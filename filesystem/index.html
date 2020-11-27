@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <title>mindbridge</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="jquery.min.js"></script>
+  <script src="mindbridge.js"></script>
+  <link rel="stylesheet" href="mindbridge.css">
+</head>
+
+<body>
+  <div class="application">
+    <div class="video bordered rounded">
+      <img id="video" class="stretch"></img>
+    </div>
+    <div class="touchpad grid bordered rounded">
+      <div class="row top">
+        <div data-x=-0.5 data-y=0.5 class="control pad"></div>
+        <div data-x=0.0 data-y=0.5 class="control pad"></div>
+        <div data-x=0.5 data-y=0.5 class="control pad"></div>
+      </div>
+      <div class="row center">
+        <div data-x=-0.5 data-y=0.0 class="control pad"></div>
+        <div id="joystick" class="control joystick"></div>
+        <div data-x=0.5 data-y=0.0 class="control pad"></div>
+      </div>
+      <div class="row bottom">
+        <div data-x=-0.5 data-y=-0.5 class="control pad"></div>
+        <div data-x=0.0 data-y=-0.5 class="control pad"></div>
+        <div data-x=0.5 data-y=-0.5 class="control pad"></div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+window.onload = function () {
+  let robot = new Robot ();
+  let joystick = new Joystick ($("#joystick"), robot, 100);
+
+  $('#video').attr ('src', '/video');
+  $('#video').css ('opacity', 1.0);
+}
+</script>
+
+</html>
