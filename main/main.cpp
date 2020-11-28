@@ -682,7 +682,6 @@ static const httpd_uri_t slash_uri = {
     .user_ctx   = (void *) "/local/index.html"
 };
 
-
 static const httpd_uri_t jquery_min_js_uri = {
     .uri        = "/jquery.min.js",
     .method     = HTTP_GET,
