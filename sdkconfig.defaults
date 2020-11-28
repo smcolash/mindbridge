@@ -1,0 +1,22 @@
+#
+# Partition Table
+#
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+
+
+
+#
+# Bluetooth Configuration
+#
+CONFIG_BT_ENABLED=y
+CONFIG_BT_CLASSIC_ENABLED=y
+CONFIG_BT_SPP_ENABLED=y
+
+#
+# Robot Configuration
+#
+CONFIG_ROBOT_ACTIVITY_LED=33
+

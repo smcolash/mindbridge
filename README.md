@@ -37,4 +37,5 @@ and a joystick/pad to control the robot's drive motors.
 - [ ] add activity LED
 - [ ] limit client access to ensure responsiveness
 - [ ] change streaming video to use pre-acquired frames from the task
+- [ ] fix disconnect/reconnect WiFi behavior
 
