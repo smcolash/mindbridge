@@ -3,10 +3,11 @@ body {
     padding: 0px;
     margin: 0px;
     overflow: hidden;
+  background-color: #0063a9;
 }
 
 .bordered {
-    background-color: #f0f0f0;
+  background-color: #fafafa;
     border: 2px solid black;
 }
 
@@ -25,7 +26,7 @@ body {
     height: calc(100vw/((4.0/3.0) + 1.0));
     margin: 6px;
     padding: unset;
-    background-image: url('smpte.gif');
+  background-image: url("smpte.gif");
     background-size: cover;
 }
 
@@ -47,9 +48,8 @@ body {
 }
 
 .grid {
-    background-image:
-        repeating-linear-gradient(#ccc 0 1px, transparent 1px 100%),
-        repeating-linear-gradient(90deg, #ccc 0 1px, transparent 1px 100%);
+  background-image: repeating-linear-gradient(#999 0 1px, transparent 1px 100%),
+    repeating-linear-gradient(90deg, #999 0 1px, transparent 1px 100%);
     background-size: 50% 50%;
     background-position: -0.5px -0.5px;
 }

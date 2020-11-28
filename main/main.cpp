@@ -94,7 +94,7 @@ static esp_err_t file_get_handler (httpd_req_t *req)
 
     const char* path = (const char*) req->user_ctx;
     const char *ext = filetype (path);
-    const char *type = "text/html";
+    const char *type = "text/plain";
 
     if (!strcmp (ext, "html"))
     {
@@ -196,17 +196,17 @@ static esp_err_t light_get_handler (httpd_req_t *request)
     if (length > 0)
     {
         char *buffer = (char *) malloc (length + 1);
-        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK) 
+        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK)
         {
             char parameter[32];
             char *temp;
 
-            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK) 
+            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK)
             {
                 unsigned int requested = strtol (parameter, &temp, 10);
                 if ((requested != 0) && (requested == token))
                 {
-                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK) 
+                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK)
                     {
                         light = (((int8_t) strtol (parameter, &temp, 10)) != 0);
                         gpio_set_level (WHITE_LED, light);
@@ -255,12 +255,12 @@ static esp_err_t open_get_handler (httpd_req_t *request)
     if (length > 0)
     {
         char *buffer = (char *) malloc (length + 1);
-        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK) 
+        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK)
         {
             char parameter[32];
             char *temp;
 
-            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK) 
+            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK)
             {
                 unsigned int requested = strtol (parameter, &temp, 10);
                 if ((requested != 0) && (requested == token))
@@ -293,12 +293,12 @@ static esp_err_t close_get_handler (httpd_req_t *request)
     if (length > 0)
     {
         char *buffer = (char *) malloc (length + 1);
-        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK) 
+        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK)
         {
             char parameter[32];
             char *temp;
 
-            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK) 
+            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK)
             {
                 unsigned int requested = strtol (parameter, &temp, 10);
                 if ((requested != 0) && (requested == token))
@@ -326,24 +326,24 @@ static esp_err_t drive_get_handler (httpd_req_t *request)
     if (length > 0)
     {
         char *buffer = (char *) malloc (length + 1);
-        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK) 
+        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK)
         {
             char parameter[32];
             char *temp;
 
-            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK) 
+            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK)
             {
                 unsigned int requested = strtol (parameter, &temp, 10);
                 if ((requested != 0) && (requested == token))
                 {
-                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK) 
+                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK)
                     {
                         int8_t speed = (int8_t) MIN (100, MAX (-100, strtol (parameter, &temp, 10)));
                         //robot->motor (LEFT_MOTOR, speed);
                         left = speed;
                     }
 
-                    if (httpd_query_key_value (buffer, "R", parameter, sizeof (parameter)) == ESP_OK) 
+                    if (httpd_query_key_value (buffer, "R", parameter, sizeof (parameter)) == ESP_OK)
                     {
                         int8_t speed = (int8_t) MIN (100, MAX (-100, strtol (parameter, &temp, 10)));
                         //robot->motor (RIGHT_MOTOR, speed);
@@ -661,6 +661,20 @@ static const httpd_uri_t favicon_png_uri = {
     .user_ctx   = (void *) "/local/favicon.png"
 };
 
+static const httpd_uri_t icon_192_png_uri = {
+    .uri        = "/icon-192.png",
+    .method     = HTTP_GET,
+    .handler    = file_get_handler,
+    .user_ctx   = (void *) "/local/icon-192.png"
+};
+
+static const httpd_uri_t manifest_json_uri = {
+    .uri        = "/manifest.json",
+    .method     = HTTP_GET,
+    .handler    = file_get_handler,
+    .user_ctx   = (void *) "/local/manifest.json"
+};
+
 static const httpd_uri_t slash_uri = {
     .uri        = "/",
     .method     = HTTP_GET,
@@ -668,12 +682,6 @@ static const httpd_uri_t slash_uri = {
     .user_ctx   = (void *) "/local/index.html"
 };
 
-static const httpd_uri_t bootstrap_min_css_uri = {
-    .uri        = "/bootstrap.min.css",
-    .method     = HTTP_GET,
-    .handler    = file_get_handler,
-    .user_ctx   = (void *) "/local/bootstrap.min.css"
-};
 
 static const httpd_uri_t jquery_min_js_uri = {
     .uri        = "/jquery.min.js",
@@ -760,8 +768,9 @@ static httpd_handle_t start_webserver (void)
         ESP_LOGI (TAG, "registering URI handlers");
 
         httpd_register_uri_handler (server, &favicon_png_uri);
+        httpd_register_uri_handler (server, &icon_192_png_uri);
+        httpd_register_uri_handler (server, &manifest_json_uri);
         httpd_register_uri_handler (server, &slash_uri);
-        httpd_register_uri_handler (server, &bootstrap_min_css_uri);
         httpd_register_uri_handler (server, &jquery_min_js_uri);
         httpd_register_uri_handler (server, &mindbridge_js_uri);
         httpd_register_uri_handler (server, &mindbridge_css_uri);
@@ -894,7 +903,7 @@ void wifi_init_sta (void)
     return;
 }
 
-static void disconnect_handler (void* arg, esp_event_base_t event_base, 
+static void disconnect_handler (void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data)
 {
     ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
@@ -908,7 +917,7 @@ static void disconnect_handler (void* arg, esp_event_base_t event_base,
     }
 }
 
-static void connect_handler (void* arg, esp_event_base_t event_base, 
+static void connect_handler (void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data)
 {
     ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
