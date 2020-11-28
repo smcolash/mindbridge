@@ -13,6 +13,7 @@ body {
 
 .rounded {
     border-radius: 12px;
+    overflow: hidden;
 }
 
 .application {
