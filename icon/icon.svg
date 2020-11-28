@@ -16,7 +16,10 @@
    version="1.1"
    id="svg8"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
-   sodipodi:docname="icon.svg">
+   sodipodi:docname="icon.svg"
+   inkscape:export-filename="/home/amcolash/Github/mindbridge/filesystem/icon-512.png"
+   inkscape:export-xdpi="48.000004"
+   inkscape:export-ydpi="48.000004">
   <defs
      id="defs2" />
   <sodipodi:namedview
@@ -27,7 +30,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.35355339"
-     inkscape:cx="700.75446"
+     inkscape:cx="205.77971"
      inkscape:cy="449.16451"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -56,7 +59,7 @@
      id="layer1"
      transform="translate(0,-26.06665)">
     <rect
-       style="fill:#095286;fill-opacity:0.94117647;stroke:none;stroke-width:0.51778322;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.94117647"
+       style="fill:#0063a9;fill-opacity:1;stroke:none;stroke-width:0.51778322;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.94117647"
        id="rect1414"
        width="270.93332"
        height="270.93332"
@@ -65,7 +68,7 @@
     <g
        id="g1467"
        style="stroke:#60b6f6;stroke-opacity:0.94117647"
-       transform="matrix(1.0533991,0,0,1.0533991,-7.2337978,-8.6257334)">
+       transform="matrix(0.85854416,0,0,0.85854416,19.162551,22.849831)">
       <g
          style="stroke:#60b6f6;stroke-width:1.14163697;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.94117647"
          transform="matrix(1.5283733,0,0,1.4611322,-66.435543,-44.94789)"
