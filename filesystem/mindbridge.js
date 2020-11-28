@@ -15,16 +15,18 @@ class Robot {
                     self.connected = (self.token != 0);
                     if (self.connected) {
                         $('.control').addClass ('ready');
+                        //$('#overlay').addClass ('hidden');
                     }
                     else {
                         $('.control').removeClass ('ready');
+                        //$('#overlay').removeClass ('hidden');
                     }
                 }
                 catch {
                 }
             });
 
-            setTimeout (ping, 5 * 1000);
+            setTimeout (ping, 1 * 1000);
         })();
 
     }

@@ -7,8 +7,8 @@ body {
 }
 
 .bordered {
-  background-color: #fafafa;
-    border: 2px solid black;
+    background-color: #f0f0f0;
+    border: 2px solid #333;
 }
 
 .rounded {
@@ -29,13 +29,14 @@ body {
     height: calc(100vw/((4.0/3.0) + 1.0));
     margin: 6px;
     padding: unset;
-  background-image: url("smpte.gif");
-    background-size: cover;
+    _background-image: url('smpte.gif');
+    _background-size: cover;
 }
 
 .stretch {
     width: 100%;
     height: 100%;
+    border-radius: 10px;
     transition: opacity 1s ease-in-out;
     opacity: 0.0;
 }
@@ -114,10 +115,30 @@ body {
     border-radius: 8px;
 }
 
+.overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    background-color: lightcoral;
+    opacity: 0.5;
+    border-radius: 10px;
+    font-size: 24px;
+    transition-duration: 0.125s;
+}
+
 .animated {
     transition-duration: 0.125s;
 }
 
 .ready {
     opacity: 1.0;
+}
+
+.hidden {
+    opacity: 0.0;
 }

@@ -22,8 +22,7 @@
 // -------
 // logging
 // -------
-static const char *HOSTNAME = "mindseye";
-static const char *TAG = HOSTNAME;
+static const char *TAG = "mindbridge";
 
 // ----
 // wifi
@@ -151,8 +150,8 @@ static esp_err_t file_get_handler (httpd_req_t *req)
 
 void produce_status (httpd_req_t *request, bool authorized = false)
 {
-    // check for 15 seconds of inactivity
-    if ((esp_timer_get_time () - last) > (15 * 1e6))
+    // allow 5 seconds of inactivity
+    if ((esp_timer_get_time () - last) > (5 * 1e6))
     {
         active = false;
         token = 0;
@@ -186,53 +185,6 @@ void produce_status (httpd_req_t *request, bool authorized = false)
     httpd_resp_send (request, response, strlen (response));
 
     return;
-}
-
-// light control URL
-static esp_err_t light_get_handler (httpd_req_t *request)
-{
-    // get the parameters
-    size_t length = httpd_req_get_url_query_len (request);
-    if (length > 0)
-    {
-        char *buffer = (char *) malloc (length + 1);
-        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK)
-        {
-            char parameter[32];
-            char *temp;
-
-            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK)
-            {
-                unsigned int requested = strtol (parameter, &temp, 10);
-                if ((requested != 0) && (requested == token))
-                {
-                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK)
-                    {
-                        light = (((int8_t) strtol (parameter, &temp, 10)) != 0);
-                        gpio_set_level (WHITE_LED, light);
-
-                        last = esp_timer_get_time ();
-                    }
-                }
-            }
-        }
-
-        free (buffer);
-    }
-
-    produce_status (request);
-
-    // all done
-    return (ESP_OK);
-}
-
-// status URL
-static esp_err_t status_get_handler (httpd_req_t *request)
-{
-    produce_status (request);
-
-    // all done
-    return (ESP_OK);
 }
 
 // session open URL
@@ -285,8 +237,17 @@ static esp_err_t open_get_handler (httpd_req_t *request)
     return (ESP_OK);
 }
 
-// session close URL
-static esp_err_t close_get_handler (httpd_req_t *request)
+// status URL
+static esp_err_t status_get_handler (httpd_req_t *request)
+{
+    produce_status (request);
+
+    // all done
+    return (ESP_OK);
+}
+
+// light control URL
+static esp_err_t light_get_handler (httpd_req_t *request)
 {
     // get the parameters
     size_t length = httpd_req_get_url_query_len (request);
@@ -303,8 +264,13 @@ static esp_err_t close_get_handler (httpd_req_t *request)
                 unsigned int requested = strtol (parameter, &temp, 10);
                 if ((requested != 0) && (requested == token))
                 {
-                    active = false;
-                    token = 0;
+                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK)
+                    {
+                        light = (((int8_t) strtol (parameter, &temp, 10)) != 0);
+                        gpio_set_level (WHITE_LED, light);
+
+                        last = esp_timer_get_time ();
+                    }
                 }
             }
         }
@@ -315,6 +281,82 @@ static esp_err_t close_get_handler (httpd_req_t *request)
     produce_status (request);
 
     // all done
+    return (ESP_OK);
+}
+
+extern "C" int httpd_default_send (httpd_handle_t hd, int sockfd, const char *buf, size_t buf_len, int flags);
+
+int httpd_default_send_str (httpd_handle_t hd, int sockfd, const char *buf, int flags)
+{
+    return (httpd_default_send (hd, sockfd, (const char *) buf, strlen (buf), flags));
+}
+
+struct video_resp_arg {
+    httpd_handle_t hd;
+    int fd;
+};
+
+#define BOUNDARY "ce3c8aac-21d4-4fa5-8c63-8c87fb2d0e27"
+
+static void emit_video_frame (void *argument)
+{
+    struct video_resp_arg *parameters = (struct video_resp_arg *) argument;
+    httpd_handle_t hd = parameters->hd;
+    int fd = parameters->fd;
+
+    camera_fb_t *fb = esp_camera_fb_get ();
+
+    if (fb)
+    {
+        int bytes = 0;
+        size_t length = fb->len;
+        uint8_t * data = fb->buf;
+        char buffer[256];
+
+        bytes = httpd_default_send_str (hd, fd, "Content-Type: image/jpeg\r\n", 0);
+        snprintf ((char *) buffer, 256, "Content-Length: %u\r\n", length);
+        bytes = httpd_default_send_str (hd, fd, buffer, 0);
+        bytes = httpd_default_send_str (hd, fd, "\r\n", 0);
+        bytes = httpd_default_send (hd, fd, (const char *) data, length, 0);
+
+        esp_camera_fb_return (fb);
+
+        if (bytes > 0)
+        {
+            bytes = httpd_default_send_str (hd, fd, "\r\n--" BOUNDARY "\r\n", 0);
+            httpd_queue_work (hd, emit_video_frame, argument);
+            return;
+        }
+    }
+
+    streaming = MAX (0, streaming - 1);
+    httpd_default_send_str (hd, fd, "\r\n--" BOUNDARY "--\r\n", 0);
+
+    free (argument);
+}
+
+static esp_err_t video_get_handler (httpd_req_t *request)
+{
+    struct video_resp_arg *argument = (struct video_resp_arg *) malloc (sizeof (struct video_resp_arg));
+
+    argument->hd = request->handle;
+    argument->fd = httpd_req_to_sockfd (request);
+
+    if (argument->fd < 0) {
+        return (ESP_FAIL);
+    }
+
+    httpd_default_send_str (argument->hd, argument->fd, "HTTP/1.1 200 OK\r\n", 0);
+    httpd_default_send_str (argument->hd, argument->fd, "Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n", 0);
+    //httpd_default_send_str (argument->hd, argument->fd, "Transfer-Encoding: chunked\r\n", 0);
+    httpd_default_send_str (argument->hd, argument->fd, "Access-Control-Allow-Origin: *\r\n", 0);
+    httpd_default_send_str (argument->hd, argument->fd, "\r\n", 0);
+    //httpd_default_send_str (argument->hd, argument->fd, "\r\n--" BOUNDARY "\r\n", 0);
+    //httpd_default_send_str (argument->hd, argument->fd, "\r\n", 0);
+
+    streaming++;
+    httpd_queue_work (request->handle, emit_video_frame, argument);
+
     return (ESP_OK);
 }
 
@@ -364,303 +406,6 @@ static esp_err_t drive_get_handler (httpd_req_t *request)
     return (ESP_OK);
 }
 
-// *************************************************************
-// ** use this as the start of the async video stream handler **
-// *************************************************************
-// notes:
-// done) hack this together to eliminate the need for the second web server
-// 2) create a camera task to centralize the sampling
-// 3) coordinate access to the latest frame
-// 4) create storage for the latest frame
-// 5) /camera reads from latest frame
-// 6) /video loops over latest frame
-// 7) test with single web server
-// 8) test with multiple clients
-// 9) see LED and Robot classes to see if this can be done the same way
-
-class Camera
-{
-    public:
-        Camera ();
-        ~Camera ();
-    public:
-        // get frame
-        // start/stop
-    public:
-        // URI helper/handler?
-    public:
-        SemaphoreHandle_t _semaphore;
-        TaskHandle_t _task;
-        int _clients;
-
-    public:
-        size_t _size;
-        uint8_t *_buffer;
-        bool _valid;
-
-    public:
-        class Frame
-        {
-            public:
-                Frame (Camera *camera);
-                ~Frame ();
-                size_t size ();
-                uint8_t *buffer ();
-            private:
-                Camera *_camera;
-                bool _attached;
-        };
-
-        // semaphore
-        // task
-        // active
-        // singleton...
-        // ...
-};
-
-void Camera_task (void *parameters)
-{
-    Camera *camera = (Camera *) parameters;
-
-    while (true)
-    {
-        // capture the current image
-        camera_fb_t *fb = esp_camera_fb_get ();
-
-        if (fb)
-        {
-            // copy the image
-            if (xSemaphoreTake (camera->_semaphore, portMAX_DELAY))
-            {
-                camera->_valid = false;
-
-                camera->_size = fb->len;
-                if (fb->len < (64 * 1024))
-                {
-                    memcpy ((void *) camera->_buffer, (void *) fb->buf, camera->_size);
-                    camera->_valid = true;
-                }
-                else
-                {
-                    ESP_LOGE (TAG, "buffer too small: %d", fb->len);
-                }
-
-                esp_camera_fb_return  (fb);
-
-                xSemaphoreGive (camera->_semaphore);
-            }
-        }
-
-        vTaskDelay (10 / portTICK_PERIOD_MS);
-    }
-}
-
-Camera::Camera ()
-{
-    _size = 0;
-    _valid = false;
-    _buffer = (uint8_t *) malloc (64 * 1024);
-
-    // set the camera configuration
-    camera_config_t camera_config =
-    {
-        .pin_pwdn = CAM_PIN_PWDN,
-        .pin_reset = CAM_PIN_RESET,
-        .pin_xclk = CAM_PIN_XCLK,
-        .pin_sscb_sda = CAM_PIN_SIOD,
-        .pin_sscb_scl = CAM_PIN_SIOC,
-
-        .pin_d7 = CAM_PIN_D7,
-        .pin_d6 = CAM_PIN_D6,
-        .pin_d5 = CAM_PIN_D5,
-        .pin_d4 = CAM_PIN_D4,
-        .pin_d3 = CAM_PIN_D3,
-        .pin_d2 = CAM_PIN_D2,
-        .pin_d1 = CAM_PIN_D1,
-        .pin_d0 = CAM_PIN_D0,
-        .pin_vsync = CAM_PIN_VSYNC,
-        .pin_href = CAM_PIN_HREF,
-        .pin_pclk = CAM_PIN_PCLK,
-
-        //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
-        .xclk_freq_hz = 20000000,
-        .ledc_timer = LEDC_TIMER_0,
-        .ledc_channel = LEDC_CHANNEL_0,
-
-        .pixel_format = PIXFORMAT_JPEG,
-        //.frame_size = FRAMESIZE_HD,
-        .frame_size = FRAMESIZE_VGA,
-
-        .jpeg_quality = 63, // original // 12, //0-63 lower number means higher quality
-        .fb_count = 2       //if more than one, i2s runs in continuous mode. Use only with JPEG
-    };
-
-    // initialize the camera
-    esp_err_t err = esp_camera_init (&camera_config);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE (TAG, "camera init failed");
-        throw (err);
-    }
-
-    sensor_t *sensor = esp_camera_sensor_get ();
-    sensor->set_hmirror (sensor, true);
-    sensor->set_vflip (sensor, true);
-
-    // create and take the semaphore
-    _semaphore = xSemaphoreCreateBinary ();
-
-    // start the Camera control task
-    _task = NULL;
-    xTaskCreate (Camera_task, "Camera_task", 4096, (void *) this, tskIDLE_PRIORITY, &_task);
-
-    // release the semaphore
-    xSemaphoreGive (_semaphore);
-}
-
-Camera::~Camera ()
-{
-    // delete the task
-    vTaskDelete (_task);
-
-    // delete the semaphore
-    vSemaphoreDelete (_semaphore);
-
-    if (_buffer)
-    {
-        free (_buffer);
-    }
-}
-
-Camera::Frame::Frame (Camera *camera)
-{
-    _camera = camera;
-
-    _attached = false;
-    if (xSemaphoreTake (_camera->_semaphore, portMAX_DELAY))
-    {
-        _attached = true;
-    }
-
-}
-
-Camera::Frame::~Frame ()
-{
-    _attached = false;
-    xSemaphoreGive (_camera->_semaphore);
-}
-
-size_t Camera::Frame::size ()
-{
-    if (_attached && _camera->_valid)
-    {
-        return (_camera->_size);
-    }
-
-    return (0);
-}
-
-uint8_t *Camera::Frame::buffer ()
-{
-    if (_attached && _camera->_valid)
-    {
-        return (_camera->_buffer);
-    }
-
-    return (NULL);
-}
-
-Camera *camera;
-
-extern "C" int httpd_default_send (httpd_handle_t hd, int sockfd, const char *buf, size_t buf_len, int flags);
-
-int httpd_default_send_str (httpd_handle_t hd, int sockfd, const char *buf, int flags)
-{
-    return (httpd_default_send (hd, sockfd, (const char *) buf, strlen (buf), flags));
-}
-
-struct video_resp_arg {
-    httpd_handle_t hd;
-    int fd;
-};
-
-#define BOUNDARY "ce3c8aac-21d4-4fa5-8c63-8c87fb2d0e27"
-
-static void emit_video_frame (void *argument)
-{
-    struct video_resp_arg *parameters = (struct video_resp_arg *) argument;
-    httpd_handle_t hd = parameters->hd;
-    int fd = parameters->fd;
-
-    camera_fb_t *fb = esp_camera_fb_get ();
-
-    if (fb)
-    {
-        int bytes = 0;
-        size_t length = fb->len;
-        uint8_t * data = fb->buf;
-        char buffer[256];
-
-        bytes = httpd_default_send_str (hd, fd, "Content-Type: image/jpeg\r\n", 0);
-        snprintf ((char *) buffer, 256, "Content-Length: %u\r\n", length);
-        bytes = httpd_default_send_str (hd, fd, buffer, 0);
-        bytes = httpd_default_send_str (hd, fd, "\r\n", 0);
-        bytes = httpd_default_send (hd, fd, (const char *) data, length, 0);
-
-        esp_camera_fb_return (fb);
-
-        if (bytes > 0)
-        {
-            bytes = httpd_default_send_str (hd, fd, "\r\n--" BOUNDARY "\r\n", 0);
-            httpd_queue_work (hd, emit_video_frame, argument);
-            return;
-        }
-    }
-
-    streaming = MAX (0, streaming - 1);
-    //light = (streaming > 0);
-    //gpio_set_level (WHITE_LED, light);
-
-    httpd_default_send_str (hd, fd, "\r\n--" BOUNDARY "--\r\n", 0);
-
-    free (argument);
-}
-
-static esp_err_t video_get_handler (httpd_req_t *request)
-{
-    struct video_resp_arg *argument = (struct video_resp_arg *) malloc (sizeof (struct video_resp_arg));
-
-    argument->hd = request->handle;
-    argument->fd = httpd_req_to_sockfd (request);
-
-    if (argument->fd < 0) {
-        return (ESP_FAIL);
-    }
-
-    httpd_default_send_str (argument->hd, argument->fd, "HTTP/1.1 200 OK\r\n", 0);
-    httpd_default_send_str (argument->hd, argument->fd, "Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n", 0);
-    //httpd_default_send_str (argument->hd, argument->fd, "Transfer-Encoding: chunked\r\n", 0);
-    httpd_default_send_str (argument->hd, argument->fd, "Access-Control-Allow-Origin: *\r\n", 0);
-    httpd_default_send_str (argument->hd, argument->fd, "\r\n", 0);
-    //httpd_default_send_str (argument->hd, argument->fd, "\r\n--" BOUNDARY "\r\n", 0);
-    //httpd_default_send_str (argument->hd, argument->fd, "\r\n", 0);
-
-    streaming++;
-    //light = (streaming > 0);
-    //gpio_set_level (WHITE_LED, light);
-
-    httpd_queue_work (request->handle, emit_video_frame, argument);
-
-    return (ESP_OK);
-}
-
-static const httpd_uri_t favicon_png_uri = {
-    .uri        = "/favicon.png",
-    .method     = HTTP_GET,
-    .handler    = file_get_handler,
-    .user_ctx   = (void *) "/local/favicon.png"
-};
-
 static const httpd_uri_t icon_192_png_uri = {
     .uri        = "/icon-192.png",
     .method     = HTTP_GET,
@@ -673,6 +418,13 @@ static const httpd_uri_t manifest_json_uri = {
     .method     = HTTP_GET,
     .handler    = file_get_handler,
     .user_ctx   = (void *) "/local/manifest.json"
+};
+
+static const httpd_uri_t favicon_png_uri = {
+    .uri        = "/favicon.png",
+    .method     = HTTP_GET,
+    .handler    = file_get_handler,
+    .user_ctx   = (void *) "/local/favicon.png"
 };
 
 static const httpd_uri_t slash_uri = {
@@ -717,13 +469,6 @@ static const httpd_uri_t open_uri = {
     .user_ctx   = (void *) "open session"
 };
 
-static const httpd_uri_t close_uri = {
-    .uri        = "/close",
-    .method     = HTTP_GET,
-    .handler    = close_get_handler,
-    .user_ctx   = (void *) "close session"
-};
-
 static const httpd_uri_t status_uri = {
     .uri        = "/status",
     .method     = HTTP_GET,
@@ -766,18 +511,20 @@ static httpd_handle_t start_webserver (void)
         // Set URI handlers
         ESP_LOGI (TAG, "registering URI handlers");
 
+        // file access handlers
+        httpd_register_uri_handler (server, &slash_uri);
         httpd_register_uri_handler (server, &favicon_png_uri);
         httpd_register_uri_handler (server, &icon_192_png_uri);
         httpd_register_uri_handler (server, &manifest_json_uri);
-        httpd_register_uri_handler (server, &slash_uri);
         httpd_register_uri_handler (server, &jquery_min_js_uri);
         httpd_register_uri_handler (server, &mindbridge_js_uri);
         httpd_register_uri_handler (server, &mindbridge_css_uri);
         httpd_register_uri_handler (server, &smpte_gif_uri);
+
+        // control handlers
+        httpd_register_uri_handler (server, &open_uri);
         httpd_register_uri_handler (server, &status_uri);
         httpd_register_uri_handler (server, &light_uri);
-        httpd_register_uri_handler (server, &open_uri);
-        httpd_register_uri_handler (server, &close_uri);
         httpd_register_uri_handler (server, &video_uri);
         httpd_register_uri_handler (server, &drive_uri);
 
@@ -814,7 +561,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
-        tcpip_adapter_set_hostname (TCPIP_ADAPTER_IF_STA, HOSTNAME);
+        tcpip_adapter_set_hostname (TCPIP_ADAPTER_IF_STA, CONFIG_MINDBRIDGE_MDNS_HOSTNAME);
         esp_wifi_connect();
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
@@ -983,7 +730,9 @@ static esp_err_t init_camera ()
 
 extern "C" void app_main ()
 {
+    //
     // initialize NVS
+    //
     esp_err_t ret = nvs_flash_init ();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
@@ -992,7 +741,9 @@ extern "C" void app_main ()
     }
     ESP_ERROR_CHECK (ret);
 
+    //
     // start WIFI and connect to the access point
+    //
     ESP_LOGI (TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta ();
 
@@ -1005,7 +756,7 @@ extern "C" void app_main ()
     ret = mdns_init ();
     ESP_ERROR_CHECK (ret);
 
-    mdns_hostname_set (HOSTNAME);
+    mdns_hostname_set (CONFIG_MINDBRIDGE_MDNS_HOSTNAME);
     mdns_instance_name_set ("LEGO Mindstorms control bridge");
 
     //add our services

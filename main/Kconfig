@@ -1,71 +1,43 @@
-menu "Camera configuration"
+menu "Robot configuration"
 
-    config OV7670_SUPPORT
-        bool "Support OV7670 VGA"
-        default y
+    config MINDBRIDGE_MDNS_HOSTNAME
+        string "mDNS Host Name"
+        default "mindbridge"
         help
-            Enable this option if you want to use the OV7670.
-            Disable this option to safe memory.
+            Specify the mDNS name of the bridge.
 
-    config OV7725_SUPPORT
-        bool "Support OV7725 SVGA"
-        default n
+    config MINDBRIDGE_ROBOT_SPP_NAME
+        string "Mindstorms NXT Bluetooth SPP Name"
+        default "NXT"
         help
-            Enable this option if you want to use the OV7725.
-            Disable this option to save memory.
+            Specify the Bluetooth name of the Mindstorms NXT robot.
 
-    config NT99141_SUPPORT
-        bool "Support NT99141 HD"
-        default y
+    config MINDBRIDGE_ACTIVITY_LED
+        int "Mindbridge activity LED"
+        default 33
         help
-            Enable this option if you want to use the NT99141.
-            Disable this option to save memory.
-
-    config OV2640_SUPPORT
-        bool "Support OV2640 2MP"
-        default y
-        help
-            Enable this option if you want to use the OV2640.
-            Disable this option to save memory.
-
-    config OV3660_SUPPORT
-        bool "Support OV3660 3MP"
-        default y
-        help
-            Enable this option if you want to use the OV3360.
-            Disable this option to save memory.
-
-    config OV5640_SUPPORT
-        bool "Support OV5640 5MP"
-        default y
-        help
-            Enable this option if you want to use the OV5640.
-            Disable this option to save memory.
-
-    choice SCCB_HARDWARE_I2C_PORT
-        bool "I2C peripheral to use for SCCB"
-        default SCCB_HARDWARE_I2C_PORT1
-
-        config SCCB_HARDWARE_I2C_PORT0
-            bool "I2C0"
-        config SCCB_HARDWARE_I2C_PORT1
-            bool "I2C1"
-
-    endchoice
-
-    choice CAMERA_TASK_PINNED_TO_CORE
-        bool "Camera task pinned to core"
-        default CAMERA_CORE0
-        help
-            Pin the camera handle task to a certain core(0/1). It can also be done automatically choosing NO_AFFINITY.
-
-        config CAMERA_CORE0
-            bool "CORE0"
-        config CAMERA_CORE1
-            bool "CORE1"
-        config CAMERA_NO_AFFINITY
-            bool "NO_AFFINITY"
-
-    endchoice
+            Specify the GPIO line for an activity LED.
 
 endmenu
+
+menu "Control Bridge Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the device to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the device to use.
+
+    config ESP_MAXIMUM_RETRY
+        int "WiFi AP Maximum retry"
+        default 5
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+endmenu
+
