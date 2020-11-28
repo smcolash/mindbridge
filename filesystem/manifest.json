@@ -1,0 +1,17 @@
+{
+  "name": "MindBridge",
+  "short_name": "MindBridge",
+  "theme_color": "#0063a9",
+  "background_color": "#0063a9",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    }
+  ]
+}
