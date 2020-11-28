@@ -20,6 +20,8 @@ body {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    height: 100vh;
+    width: 100vw;
 }
 
 .video {
@@ -56,13 +58,17 @@ body {
 }
 
 @media (max-width: 600px) {
+    .application {
+        align-content: center;
+    }
+
     .video {
-        flex-basis: 95%;
+        flex-basis: 95vw;
         height: calc(95vw/(4.0/3.0));
     }
 
     .touchpad {
-        flex-basis: 95%;
+        flex-basis: 95vw;
         height: calc(95vw);
     }
 }
