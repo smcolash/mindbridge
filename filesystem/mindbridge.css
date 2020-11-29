@@ -29,8 +29,8 @@ body {
     height: calc(100vw/((4.0/3.0) + 1.0));
     margin: 6px;
     padding: unset;
-    _background-image: url('smpte.gif');
-    _background-size: cover;
+    background-image: url('smpte.gif');
+    background-size: cover;
 }
 
 .stretch {
