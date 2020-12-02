@@ -27,12 +27,12 @@ and a joystick/pad to control the robot's drive motors.
 
 # Remaining Work
 
-- [ ] rework the project configuration
-- [ ] rework the WiFi initialization
-- [ ] clean up the camera code
-- [ ] integrate the Bluetooth code
-- [ ] integrate the robot interface code
-- [ ] add activity LED
-- [ ] limit client access to ensure responsiveness
-- [ ] fix disconnect/reconnect WiFi behavior
+- rework the project configuration
+- rework the WiFi initialization
+- clean up the camera code
+- integrate the Bluetooth code
+- integrate the robot interface code
+- add activity LED
+- limit client access to ensure responsiveness
+- fix disconnect/reconnect WiFi behavior
 
