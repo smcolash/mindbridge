@@ -92,162 +92,139 @@ class Robot {
 };
 
 class Joystick {
-    constructor (element, driver, scale = 100) {
-        this.element = $(element);
-        this.element.addClass ('animated');
+    constructor (element, driver) {
+        this.touchpad = element;
+        this.joystick = element.find('#joystick');
 
         this.driver = driver;
-        this.scale = scale;
-        this.active = false;
 
-        this.center = {
-            'x': parseFloat (this.element.css ('left'), 10),
-            'y': parseFloat (this.element.css ('top'), 10)
-        };
+        const self = this;
 
-        this.start = {
-            'x': parseFloat (this.element.css ('left'), 10),
-            'y': parseFloat (this.element.css ('top'), 10)
-        };
+        this.keys = {};
+        this.position = { x: 0, y : 0 };
 
-        this.mapping = {
-            'ArrowUp': {'x': 0, 'y': 0.5},
-            'ArrowDown': {'x': 0, 'y': -0.5},
-            'ArrowLeft': {'x': -0.5, 'y': 0},
-            'ArrowRight': {'x': 0.5, 'y': 0}
-        };
-
-        let self = this;
+        this.keyPositions = {
+            ArrowUp: { y: 0 },
+            ArrowDown: { y: 1},
+            ArrowLeft: { x: 0 },
+            ArrowRight: { x: 1},
+        }
 
         //
         // handle keyboard events
         //
         $(document)
             .on ('keydown', function (e) {
-                if (e.code in self.mapping) {
-                    self.active = false;
-
-                    e.preventDefault ();
-                    e.stopPropagation ();
-
-                    if (!e.originalEvent.repeat) {
-                        let off_x = 0.75 * self.element.parent ().parent ().width ();
-                        self.element.css ('left', self.center.x + (self.mapping[e.code].x * off_x) + 'px');
-                        let off_y = 0.75 * self.element.parent ().parent ().height ();
-                        self.element.css ('top', self.center.y + (-self.mapping[e.code].y * off_y) + 'px');
-
-                        let x = self.mapping[e.code].x * self.scale;
-                        let y = self.mapping[e.code].y * self.scale;
-
-                        self.driver.update (x, y);
-                    }
-                }
+                self.joystick.addClass('animated');
+                self.keys[e.code] = true;
+                self.updateKeys();
             })
             .on ('keyup', function (e) {
-                if (e.code in self.mapping) {
-                    self.end (e);
+                self.keys[e.code] = false;
+                self.updateKeys();
+            });
+
+        window.addEventListener('resize', () => {
+            self.joystick.removeClass('animated');
+            self.update({x: 0.5, y: 0.5});
+        });
+
+        //
+        // handle mouse/touch events
+        //
+        this.touchpad
+            .on ('pointerdown pointerenter pointermove', function (e) {
+                if (e.buttons === 1) {
+                    self.joystick.removeClass('animated');
+                    self.updateMouse(e);
                 }
-            });
-
-        //
-        // handle directional pad mouse events
-        //
-        $('.pad')
-            .on ('mousedown touchstart', function (e) {
-                e.preventDefault ();
-                e.stopPropagation ();
-
-                let pad = $(this);
-
-                let off_x = 0.75 * self.element.parent ().parent ().width ();
-                self.element.css ('left', self.center.x + (pad.data ('x') * off_x) + 'px');
-                let off_y = 0.75 * self.element.parent ().parent ().height ();
-                self.element.css ('top', self.center.y + (-pad.data ('y') * off_y) + 'px');
-
-                let x = pad.data ('x') * self.scale;
-                let y = pad.data ('y') * self.scale;
-
-                self.driver.update (x, y);
-            });
-
-        //
-        // handle mouse/touch tracking events
-        //
-        this.element
-            .on ('mousedown', function (e) {
-                self.begin (e, e.clientX, e.clientY);
             })
-            .on ('touchstart', function (e) {
-                self.begin (e, e.originalEvent.touches[0].clientX, e.originalEvent.touches[0].clientY);
-            })
-            .on ('mousemove', function (e) {
-                self.update (e, e.clientX, e.clientY);
-            })
-            .on ('touchmove', function (e) {
-                self.update (e, e.originalEvent.touches[0].clientX, e.originalEvent.touches[0].clientY);
-            });
-
-        //
-        // end if the mouse exits the trackpad area
-        //
-        this.element.parent ().parent ()
-            .on ('mouseup mouseleave touchend', function (e) {
-                self.end (e);
+            .on ('pointerup', function (e) {
+                self.joystick.addClass('animated');
+                self.update({x: 0.5, y: 0.5});
             });
     }
 
-    begin (e, x, y) {
-        e.preventDefault ();
-        e.stopPropagation ();
+    updateKeys() {
+        let updatedPosition = { x: 0.5, y: 0.5 };
 
-        this.active = true;
-        this.element.removeClass ('animated');
-        this.start = {'x': x, 'y': y};
-    }
+        Object.entries(this.keys).forEach(e => {
+            const key = e[0];
+            const value = e[1];
 
-    update (e, x, y) {
-        if (!this.active) {
-            return;
-        }
+            if (!value) return;
 
-        e.preventDefault ();
-        e.stopPropagation ();
-
-        let limit = (this.element.parent ().parent ().width () / 2) - (this.element.width () / 2) - 12; // HACK
-        let scale = this.scale / limit;
-
-        let dx = this.start.x - x;
-        if ((dx >= -limit) && (dx <= limit)) {
-            this.element.css ('left', this.center.x + (-dx) + "px");
-        }
-
-        let dy = -1 * (this.start.y - y);
-        if ((dy >= -limit) && (dy <= limit)) {
-            this.element.css ('top', this.center.y + (dy) + "px");
-        }
-
-        dx = Math.min (this.scale, Math.max (-this.scale, -dx * scale));
-        dy = Math.min (this.scale, Math.max (-this.scale, -dy * scale));
-
-        this.driver.update (dx, dy);
-    }
-
-    end (e) {
-        try {
-            if (e.cancelable) {
-                e.preventDefault ();
-                e.stopPropagation ();
+            if (this.keyPositions[key]) {
+                updatedPosition.x = this.keyPositions[key].x !== undefined ? this.keyPositions[key].x : updatedPosition.x;
+                updatedPosition.y = this.keyPositions[key].y !== undefined ? this.keyPositions[key].y : updatedPosition.y;
             }
+
+        });
+
+        if (this.keys['ArrowLeft'] && this.keys['ArrowRight']) updatedPosition.x = 0.5;
+        if (this.keys['ArrowUp'] && this.keys['ArrowDown']) updatedPosition.y = 0.5;
+
+        this.update(updatedPosition);
+    }
+
+    updateMouse(e) {
+        const touchpadWidth = this.touchpad.width();
+        const touchpadHeight = this.touchpad.height();
+
+        const joystickWidth = this.joystick.width();
+        const joystickHeight = this.joystick.height();
+
+        let x = (e.offsetX - (joystickWidth / 2)) / (touchpadWidth - joystickWidth);
+        let y = (e.offsetY - (joystickHeight / 2)) / (touchpadHeight - joystickHeight);
+
+        // Clamp x/y from 0-1
+        x = Math.max(0, Math.min(x, 1));
+        y = Math.max(0, Math.min(y, 1));
+
+        const snappedPosition = this.snapHotspots({x, y});
+        this.update(snappedPosition);
+    }
+
+    distSq(x1, y1, x2, y2) {
+        return ((x2-x1) * (x2-x1)) + ((y2-y1) * (y2-y1));
+    }
+
+    checkSpot(pos, x2, y2) {
+        if (this.distSq(pos.x, pos.y, x2, y2) < 0.03) return { x: x2, y: y2 };
+        return pos;
+    }
+
+    snapHotspots(position) {
+        let updatedPosition = { ...position };
+
+        const hotspots = [
+            [0,0],      [0.5, 0],    [1, 0],
+            [0, 0.5],           ,  [1, 0.5],
+            [0, 1],     [0.5, 1],    [1, 1]
+        ];
+
+        hotspots.forEach(h => updatedPosition = this.checkSpot(updatedPosition, h[0], h[1]));
+
+        return updatedPosition;
+    }
+
+    update(updatedPosition) {
+        const touchpadWidth = this.touchpad.width();
+        const touchpadHeight = this.touchpad.height();
+
+        const joystickWidth = this.joystick.width();
+        const joystickHeight = this.joystick.height();
+
+        // Double the set margin of 3%
+        const totalMargin = '6%';
+
+        this.joystick.css('left', `calc(${updatedPosition.x} * (${touchpadWidth - joystickWidth}px - ${totalMargin}))`);
+        this.joystick.css('top', `calc(${updatedPosition.y} * (${touchpadHeight - joystickHeight}px - ${totalMargin}))`);
+
+        // the lazy way to check differences for arbitray data
+        if (JSON.stringify(updatedPosition) !== JSON.stringify(this.position)) {
+            this.position = updatedPosition;
+            this.driver.update ((updatedPosition.x * 2) - 1, (updatedPosition.y * 2) - 1);
         }
-        catch {
-        }
-
-        this.active = false;
-
-        this.element.addClass ('animated');
-        this.element.css ('left', this.center.x + 'px');
-        this.element.css ('top', this.center.y + 'px');
-
-        this.driver.stop ();
     }
 };

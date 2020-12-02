@@ -1,9 +1,17 @@
+html {
+    height: 100%;
+    width: 100%;
+}
+
 body {
     font-family: sans-serif;
     padding: 0px;
     margin: 0px;
     overflow: hidden;
-  background-color: #0063a9;
+    background-color: #0063a9;
+    height: 100%;
+    width: 100%;
+    touch-action: none;
 }
 
 .bordered {
@@ -20,8 +28,8 @@ body {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    width: 100%;
 }
 
 .video {
@@ -45,10 +53,12 @@ body {
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
+    align-content: space-between;
     justify-content: space-between;
     flex: calc(1*512);
     height: calc(100vw/((4.0/3.0) + 1.0));
     margin: 6px;
+    position: relative;
 }
 
 .grid {
@@ -58,7 +68,7 @@ body {
     background-position: -0.5px -0.5px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 545px) {
     .application {
         align-content: center;
     }
@@ -96,18 +106,29 @@ body {
 
 .control {
     width: 20%;
-    padding-top: 20%;
-    margin: 12px;
+    height: 20%;
+    margin: 3%;
     transition-property: opacity, left, top;
     opacity: 0.0;
+
+    pointer-events: none;
+    user-select: none;
+    touch-action: none;
+}
+
+.control:hover {
+    filter: brightness(0.9);
 }
 
 .joystick {
     border-radius: 50%;
     background-color: cornflowerblue;
-    position: relative;
-    top: 0px;
-    left: 0px;
+    position: absolute;
+
+    /* Center joystick in middle of div = Half of touchpad - half of joystick - margin */
+    /* 37% = 50% - (20% / 2) - 3% */
+    top: 37%;
+    left: 37%;
 }
 
 .pad {
