@@ -30,12 +30,9 @@ and a joystick/pad to control the robot's drive motors.
 - [ ] rework the project configuration
 - [ ] rework the WiFi initialization
 - [ ] clean up the camera code
-- [ ] rework the camera acquisitions into a shared/async task
-- [ ] remove duplicate camera code
 - [ ] integrate the Bluetooth code
 - [ ] integrate the robot interface code
 - [ ] add activity LED
 - [ ] limit client access to ensure responsiveness
-- [ ] change streaming video to use pre-acquired frames from the task
 - [ ] fix disconnect/reconnect WiFi behavior
 
