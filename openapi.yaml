@@ -1,12 +1,5 @@
 openapi: 3.0.0
-#servers:
-#  - description: Production server
-#    url: http://rdarc1.ct.med.ge.com/testrunner
-#  - description: Development server
-#    url: http://3.57.119.137/testrunner
-#  - description: SwaggerHub API Auto Mocking
-#    url: http://ctwdof021.am.health.ge.com/virts/212007025/testrunner/1.0.0
-    
+
 info:
   description: MindBridge interfaces
   version: "1.0.0"
@@ -15,7 +8,7 @@ info:
     email: s.mcolash@ieee.org
   license:
     name: MIT
-    url: 'tbd'
+    url: 'https://raw.githubusercontent.com/smcolash/mindbridge/master/LICENSE'
     
 tags:
   - name: files
@@ -24,33 +17,15 @@ tags:
     description: REST service endpoints
     
 paths:
-  /icon-192.png:
-    get:
-      tags:
-        - files
-      summary: application icon
-      description: Application icon
-      
-  /favicon.png:
-    get:
-      tags:
-        - files
-      summary: browser icon
-      description: Browser icon
-      
-  /manifest.json:
-    get:
-      tags:
-        - files
-      summary: manifest file
-      description: Manifest file
-      
   /:
     get:
       tags:
         - files
       summary: main page
       description: Main page
+      responses:
+        '200':
+          description: OK
       
   /index.html:
     get:
@@ -58,6 +33,39 @@ paths:
         - files
       summary: main page
       description: Main page
+      responses:
+        '200':
+          description: OK
+
+  /favicon.png:
+    get:
+      tags:
+        - files
+      summary: browser icon
+      description: Browser icon
+      responses:
+        '200':
+          description: OK
+      
+  /icon-192.png:
+    get:
+      tags:
+        - files
+      summary: application icon
+      description: Application icon
+      responses:
+        '200':
+          description: OK
+      
+  /manifest.json:
+    get:
+      tags:
+        - files
+      summary: manifest file
+      description: Manifest file
+      responses:
+        '200':
+          description: OK
       
   /jquery.min.js:
     get:
@@ -65,6 +73,9 @@ paths:
         - files
       summary: jquery library
       description: jquery library
+      responses:
+        '200':
+          description: OK
       
   /mindbridge.js:
     get:
@@ -72,6 +83,9 @@ paths:
         - files
       summary: mindbridge library
       description: MindBridge library
+      responses:
+        '200':
+          description: OK
       
   /mindbridge.css:
     get:
@@ -79,6 +93,9 @@ paths:
         - files
       summary: mindbridge styles
       description: MindBridge styles
+      responses:
+        '200':
+          description: OK
       
   /smpte.gif:
     get:
@@ -86,6 +103,9 @@ paths:
         - files
       summary: SMPTE test pattern
       description: SMPTE test pattern
+      responses:
+        '200':
+          description: OK
 
   /open:
     get:
@@ -93,6 +113,12 @@ paths:
         - services
       summary: request control of the robot
       description: Requst control of the robot.
+      parameters:
+      - in: query
+        name: T
+        schema:
+          type: integer
+          example: 1234
       responses:
         '200':
           description: status response
@@ -127,6 +153,17 @@ paths:
         - services
       summary: control the robot camera LED
       description: Control the robot camera LED.
+      parameters:
+      - in: query
+        name: T
+        schema:
+          type: integer
+          example: 1234
+      - in: query
+        name: L
+        schema:
+          type: boolean
+          example: 1
       responses:
         '200':
           description: status response
@@ -155,12 +192,34 @@ paths:
                 items:
                   $ref: '#/components/schemas/StatusResponse'
 
-/drive:
+  /drive:
     get:
       tags:
         - services
       summary: control the robot drives
       description: Control the robot drives.
+      parameters:
+      - in: query
+        name: T
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 9999
+          example: 1234
+      - in: query
+        name: L
+        schema:
+          type: integer
+          minimum: -100
+          maximum: 100
+          example: 0
+      - in: query
+        name: R
+        schema:
+          type: integer
+          minimum: -100
+          maximum: 100
+          example: 0
       responses:
         '200':
           description: status response
@@ -179,10 +238,39 @@ components:
       description: current status
       type: object
       properties:
-        VIEW:
-          description: the name of the collection
-          type: string
-          example: "revo_ct.42"
+        active:
+          description: zxcv
+          type: integer
+          example: 1234
+        connected:
+          description: zxcv
+          type: integer
+          example: 1234
+        token:
+          description: zxcv
+          type: integer
+          example: 1234
+        streaming:
+          description: zxcv
+          type: integer
+          example: 1234
+        light:
+          description: zxcv
+          type: integer
+          example: 1234
+        left:
+          description: zxcv
+          type: integer
+          example: 1234
+        right:
+          description: zxcv
+          type: integer
+          example: 1234
+
+
+
+
+
 
     OpenParameters:
       description: current status
@@ -201,3 +289,7 @@ components:
           description: the name of the collection
           type: string
           example: "revo_ct.42"
+# Added by API Auto Mocking Plugin
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: http://ctwdof021.am.health.ge.com/virts/212007025/MindBridge/1.0.0
