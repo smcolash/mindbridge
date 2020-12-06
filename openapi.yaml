@@ -112,10 +112,11 @@ paths:
       tags:
         - services
       summary: request control of the robot
-      description: Requst control of the robot.
+      description: Requst control of the robot. A token will not be issued if another token is already active. Non-zero values are used to maintain use of an already-issued token. An issues token will be invalidated after 10 seconds of inactivity.
       parameters:
       - in: query
         name: T
+        description: Control token value. A value of '0' is used to requet a new token.
         schema:
           type: integer
           example: 1234
