@@ -3,8 +3,8 @@
 This code is run on an ESP32 with Bluetooth, WiFi and a GPIO-interfaced camera
 to enable remote control of a LEGO Mindstorms robot.
 
-The code is written for and built using the Espresif development framework and
-tools (https://docs.espressif.com/projects/esp-idf/en/latest/esp32/index.html)
+The code is written for and built using the [Espresif development framework and
+tools](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/index.html)
 and not the higher-level Arduino environment.
 
 ## Configuration
@@ -27,7 +27,7 @@ and a joystick/pad to control the robot's drive motors.
 
 ## REST API
 
-The device works as a bridge between the Internet user/browser and the LEGO Mindstorms robot. Interactins with the bridge are in terms of its REST interfaces. The interfaces are documented in the openapi.yaml (https://petstore.swagger.io/?url=https://raw.githubusercontent.com/smcolash/mindbridge/master/openapi.yaml) file using the OpenAPI format.
+The device works as a bridge between the Internet user/browser and the LEGO Mindstorms robot. Interactins with the bridge are in terms of its REST interfaces. The interfaces are documented in the [openapi.yaml](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/smcolash/mindbridge/master/openapi.yaml) file using the [OpenAPI]( https://www.openapis.org/) format.
 
 # Remaining Work
 
