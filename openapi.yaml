@@ -1,0 +1,76 @@
+openapi: 3.0.0
+#servers:
+#  - description: Production server
+#    url: http://rdarc1.ct.med.ge.com/testrunner
+#  - description: Development server
+#    url: http://3.57.119.137/testrunner
+#  - description: SwaggerHub API Auto Mocking
+#    url: http://ctwdof021.am.health.ge.com/virts/212007025/testrunner/1.0.0
+    
+info:
+  description: MindBridge interfaces
+  version: "1.0.0"
+  title: MindBridge API
+  contact:
+    email: s.mcolash@ieee.org
+  license:
+    name: MIT
+    url: 'tbd'
+    
+tags:
+  - name: pages
+    description: Human interfaces/pages available via browser
+  - name: services
+    description: REST service endpoints
+    
+paths:
+  /index.html:
+    get:
+      tags:
+        - pages
+      summary: main page
+      operationId: main
+      description: Main page
+      responses:
+        '200':
+          description: page content showing running queue, pending queue and list of results
+
+  /drive:
+    get:
+      tags:
+        - services
+      summary: get list of pending jobs
+      description: Get list of pending jobs.
+      responses:
+        '200':
+          description: list of pending queue entries
+          content:
+            application/json:
+              schema:
+                description: array of queue entries
+                type: object
+                properties:
+                  data:
+                    description: queue entry
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QueueEntry'
+                      
+components:
+  schemas:
+    Result:
+      description: summary of a single collection of results
+      type: object
+      properties:
+        COUNT:
+          description: the number of results in the collection
+          type: integer
+          example: 10
+        TIME:
+          description: the epoch timestamp of the latest result in the collection
+          type: integer
+          example: 1607089088
+        VIEW:
+          description: the name of the collection
+          type: string
+          example: "revo_ct.42"
