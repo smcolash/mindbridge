@@ -27,7 +27,7 @@ and a joystick/pad to control the robot's drive motors.
 
 ## REST API
 
-The device works as a bridge between the Internet user/browser and the LEGO Mindstorms robot. Interactins with the bridge are in terms of its REST interfaces. The interfaces are documented in the [openapi.yaml](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/smcolash/mindbridge/master/openapi.yaml) file using the [OpenAPI]( https://www.openapis.org/) format.
+The device works as a bridge between the Internet user/browser and the LEGO Mindstorms robot. Interactins with the bridge are in terms of its REST interfaces. The interfaces are documented in the <a href="https://petstore.swagger.io/?url=https://raw.githubusercontent.com/smcolash/mindbridge/master/openapi.yaml" target="_EXTERNAL">openapi.yaml</a> file using the [OpenAPI]( https://www.openapis.org/) format.
 
 # Remaining Work
 
