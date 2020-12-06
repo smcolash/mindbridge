@@ -25,6 +25,10 @@ Bluetooth Configuration
 The code runs on the ESP32 to provide a web interface with streaming video
 and a joystick/pad to control the robot's drive motors.
 
+## REST API
+
+The device works as a bridge between the Internet user/browser and the LEGO Mindstorms robot. Interactins with the bridge are in terms of its REST interfaces. The interfaces are documented in the openapi.yaml (https://petstore.swagger.io/?url=https://raw.githubusercontent.com/smcolash/mindbridge/master/openapi.yaml) file using the OpenAPI format.
+
 # Remaining Work
 
 - rework the project configuration
