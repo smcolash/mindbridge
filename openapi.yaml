@@ -18,58 +18,185 @@ info:
     url: 'tbd'
     
 tags:
-  - name: pages
-    description: Human interfaces/pages available via browser
+  - name: files
+    description: Static content
   - name: services
     description: REST service endpoints
     
 paths:
+  /icon-192.png:
+    get:
+      tags:
+        - files
+      summary: application icon
+      description: Application icon
+      
+  /favicon.png:
+    get:
+      tags:
+        - files
+      summary: browser icon
+      description: Browser icon
+      
+  /manifest.json:
+    get:
+      tags:
+        - files
+      summary: manifest file
+      description: Manifest file
+      
+  /:
+    get:
+      tags:
+        - files
+      summary: main page
+      description: Main page
+      
   /index.html:
     get:
       tags:
-        - pages
+        - files
       summary: main page
-      operationId: main
       description: Main page
-      responses:
-        '200':
-          description: page content showing running queue, pending queue and list of results
+      
+  /jquery.min.js:
+    get:
+      tags:
+        - files
+      summary: jquery library
+      description: jquery library
+      
+  /mindbridge.js:
+    get:
+      tags:
+        - files
+      summary: mindbridge library
+      description: MindBridge library
+      
+  /mindbridge.css:
+    get:
+      tags:
+        - files
+      summary: mindbridge styles
+      description: MindBridge styles
+      
+  /smpte.gif:
+    get:
+      tags:
+        - files
+      summary: SMPTE test pattern
+      description: SMPTE test pattern
 
-  /drive:
+  /open:
     get:
       tags:
         - services
-      summary: get list of pending jobs
-      description: Get list of pending jobs.
+      summary: request control of the robot
+      description: Requst control of the robot.
       responses:
         '200':
-          description: list of pending queue entries
+          description: status response
           content:
             application/json:
               schema:
-                description: array of queue entries
+                description: status response
                 type: object
-                properties:
-                  data:
-                    description: queue entry
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/QueueEntry'
-                      
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /status:
+    get:
+      tags:
+        - services
+      summary: get the robot status
+      description: Get the robot status.
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /light:
+    get:
+      tags:
+        - services
+      summary: control the robot camera LED
+      description: Control the robot camera LED.
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /video:
+    get:
+      tags:
+        - services
+      summary: produce streaming video
+      description: Produce streaming video.
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: streaming video
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+/drive:
+    get:
+      tags:
+        - services
+      summary: control the robot drives
+      description: Control the robot drives.
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
 components:
   schemas:
-    Result:
-      description: summary of a single collection of results
+  
+    StatusResponse:
+      description: current status
       type: object
       properties:
-        COUNT:
-          description: the number of results in the collection
-          type: integer
-          example: 10
-        TIME:
-          description: the epoch timestamp of the latest result in the collection
-          type: integer
-          example: 1607089088
+        VIEW:
+          description: the name of the collection
+          type: string
+          example: "revo_ct.42"
+
+    OpenParameters:
+      description: current status
+      type: object
+      properties:
+        VIEW:
+          description: the name of the collection
+          type: string
+          example: "revo_ct.42"
+
+    DriveParameters:
+      description: current status
+      type: object
+      properties:
         VIEW:
           description: the name of the collection
           type: string
