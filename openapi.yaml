@@ -267,11 +267,6 @@ components:
           type: integer
           example: 1234
 
-
-
-
-
-
     OpenParameters:
       description: current status
       type: object
@@ -289,7 +284,3 @@ components:
           description: the name of the collection
           type: string
           example: "revo_ct.42"
-# Added by API Auto Mocking Plugin
-servers:
-  - description: SwaggerHub API Auto Mocking
-    url: http://ctwdof021.am.health.ge.com/virts/212007025/MindBridge/1.0.0
