@@ -1,0 +1,287 @@
+openapi: 3.0.0
+
+info:
+  description: MindBridge interfaces
+  version: "1.0.0"
+  title: MindBridge API
+  contact:
+    email: s.mcolash@ieee.org
+  license:
+    name: MIT
+    url: 'https://raw.githubusercontent.com/smcolash/mindbridge/master/LICENSE'
+    
+tags:
+  - name: files
+    description: Static content
+  - name: services
+    description: REST service endpoints
+    
+paths:
+  /:
+    get:
+      tags:
+        - files
+      summary: main page
+      description: Main page
+      responses:
+        '200':
+          description: OK
+      
+  /index.html:
+    get:
+      tags:
+        - files
+      summary: main page
+      description: Main page
+      responses:
+        '200':
+          description: OK
+
+  /favicon.png:
+    get:
+      tags:
+        - files
+      summary: browser icon
+      description: Browser icon
+      responses:
+        '200':
+          description: OK
+      
+  /icon-192.png:
+    get:
+      tags:
+        - files
+      summary: application icon
+      description: Application icon
+      responses:
+        '200':
+          description: OK
+      
+  /manifest.json:
+    get:
+      tags:
+        - files
+      summary: manifest file
+      description: Manifest file
+      responses:
+        '200':
+          description: OK
+      
+  /jquery.min.js:
+    get:
+      tags:
+        - files
+      summary: jquery library
+      description: jquery library
+      responses:
+        '200':
+          description: OK
+      
+  /mindbridge.js:
+    get:
+      tags:
+        - files
+      summary: mindbridge library
+      description: MindBridge library
+      responses:
+        '200':
+          description: OK
+      
+  /mindbridge.css:
+    get:
+      tags:
+        - files
+      summary: mindbridge styles
+      description: MindBridge styles
+      responses:
+        '200':
+          description: OK
+      
+  /smpte.gif:
+    get:
+      tags:
+        - files
+      summary: SMPTE test pattern
+      description: SMPTE test pattern
+      responses:
+        '200':
+          description: OK
+
+  /open:
+    get:
+      tags:
+        - services
+      summary: request control of the robot
+      description: Requst control of the robot. A token will not be issued if another token is already active. Non-zero values are used to maintain use of an already-issued token. An issues token will be invalidated after 10 seconds of inactivity.
+      parameters:
+      - in: query
+        name: T
+        description: Control token value. A value of '0' is used to requet a new token.
+        schema:
+          type: integer
+          example: 1234
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /status:
+    get:
+      tags:
+        - services
+      summary: get the robot status
+      description: Get the robot status.
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /light:
+    get:
+      tags:
+        - services
+      summary: control the robot camera LED
+      description: Control the robot camera LED.
+      parameters:
+      - in: query
+        name: T
+        schema:
+          type: integer
+          example: 1234
+      - in: query
+        name: L
+        schema:
+          type: boolean
+          example: 1
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /video:
+    get:
+      tags:
+        - services
+      summary: produce streaming video
+      description: Produce streaming video.
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: streaming video
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+  /drive:
+    get:
+      tags:
+        - services
+      summary: control the robot drives
+      description: Control the robot drives.
+      parameters:
+      - in: query
+        name: T
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 9999
+          example: 1234
+      - in: query
+        name: L
+        schema:
+          type: integer
+          minimum: -100
+          maximum: 100
+          example: 0
+      - in: query
+        name: R
+        schema:
+          type: integer
+          minimum: -100
+          maximum: 100
+          example: 0
+      responses:
+        '200':
+          description: status response
+          content:
+            application/json:
+              schema:
+                description: status response
+                type: object
+                items:
+                  $ref: '#/components/schemas/StatusResponse'
+
+components:
+  schemas:
+  
+    StatusResponse:
+      description: current status
+      type: object
+      properties:
+        active:
+          description: zxcv
+          type: integer
+          example: 1234
+        connected:
+          description: zxcv
+          type: integer
+          example: 1234
+        token:
+          description: zxcv
+          type: integer
+          example: 1234
+        streaming:
+          description: zxcv
+          type: integer
+          example: 1234
+        light:
+          description: zxcv
+          type: integer
+          example: 1234
+        left:
+          description: zxcv
+          type: integer
+          example: 1234
+        right:
+          description: zxcv
+          type: integer
+          example: 1234
+
+    OpenParameters:
+      description: current status
+      type: object
+      properties:
+        VIEW:
+          description: the name of the collection
+          type: string
+          example: "revo_ct.42"
+
+    DriveParameters:
+      description: current status
+      type: object
+      properties:
+        VIEW:
+          description: the name of the collection
+          type: string
+          example: "revo_ct.42"
