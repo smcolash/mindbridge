@@ -250,6 +250,7 @@ bool Robot::process (uint32_t handle, uint16_t length, uint8_t *data)
             if (data[4] == 0x00)
             {
                 _battery = UINT16 (&data[5]) / 1000.0;
+                ESP_LOGI ("mindbridge", "battery: %0.1f", _battery);
             }
         }
         else if (data[3] == 0x0d)
@@ -264,6 +265,7 @@ bool Robot::process (uint32_t handle, uint16_t length, uint8_t *data)
             if (data[4] == 0x00)
             {
                 _keepalive = UINT32 (&data[5]) / 1000.0;
+                ESP_LOGI ("mindbridge", "keepalive: %0.1f", _keepalive);
             }
         }
         else

@@ -824,7 +824,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 
 void wifi_init_sta (void)
 {
-    ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
     s_wifi_event_group = xEventGroupCreate ();
 
     ESP_ERROR_CHECK (esp_netif_init ());
@@ -835,11 +834,9 @@ void wifi_init_sta (void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT ();
     ESP_ERROR_CHECK (esp_wifi_init (&cfg));
 
-    ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
     ESP_ERROR_CHECK (esp_event_handler_register (WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK (esp_event_handler_register (IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
 
-    ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
     wifi_config_t wifi_config;
     memset (&wifi_config, 0x00, sizeof (wifi_config));
     sprintf ((char *) wifi_config.sta.ssid, CONFIG_ESP_WIFI_SSID);
@@ -887,7 +884,6 @@ void wifi_init_sta (void)
 static void disconnect_handler (void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data)
 {
-    ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
     ESP_LOGI (TAG, "stopping network services");
 
     httpd_handle_t* server = (httpd_handle_t*) arg;
@@ -901,7 +897,6 @@ static void disconnect_handler (void* arg, esp_event_base_t event_base,
 static void connect_handler (void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data)
 {
-    ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
     ESP_LOGI (TAG, "starting network services");
 
     httpd_handle_t* server = (httpd_handle_t*) arg;
@@ -965,7 +960,6 @@ static esp_err_t init_camera ()
 
 extern "C" void app_main ()
 {
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     //
     // initialize NVS
     //
@@ -977,15 +971,12 @@ extern "C" void app_main ()
     }
     ESP_ERROR_CHECK (ret);
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     // create the LED interface
     led = new LED ((gpio_num_t) CONFIG_MINDBRIDGE_ACTIVITY_LED);
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     // create the robot interface
     robot = new Robot ("Chad", led);
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     //
     // start WIFI and connect to the access point
     //
@@ -1011,7 +1002,6 @@ extern "C" void app_main ()
     // configure the filesystem
     // ------------------------
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     esp_vfs_spiffs_conf_t spiffs_conf =
     {
         .base_path = "/local",
@@ -1041,7 +1031,6 @@ extern "C" void app_main ()
         ESP_LOGI (TAG, "Partition size: total: %d, used: %d", total, used);
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     // ----------
     // web server
     // ----------
@@ -1059,11 +1048,8 @@ extern "C" void app_main ()
     gpio_config (&io_conf);
 #endif
 
-
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     ESP_ERROR_CHECK (esp_bt_controller_mem_release (ESP_BT_MODE_BLE));
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT ();
     if ((ret = esp_bt_controller_init (&bt_cfg)) != ESP_OK)
     {
@@ -1071,49 +1057,42 @@ extern "C" void app_main ()
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     if ((ret = esp_bt_controller_enable (ESP_BT_MODE_CLASSIC_BT)) != ESP_OK)
     {
         ESP_LOGE (TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name (ret));
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     if ((ret = esp_bluedroid_init ()) != ESP_OK)
     {
         ESP_LOGE (TAG, "%s initialize bluedroid failed: %s\n", __func__, esp_err_to_name (ret));
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     if ((ret = esp_bluedroid_enable ()) != ESP_OK)
     {
         ESP_LOGE (TAG, "%s enable bluedroid failed: %s\n", __func__, esp_err_to_name (ret));
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     if ((ret = esp_bt_gap_register_callback (esp_bt_gap_cb)) != ESP_OK)
     {
         ESP_LOGE (TAG, "%s gap register failed: %s\n", __func__, esp_err_to_name (ret));
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     if ((ret = esp_spp_register_callback (esp_spp_cb)) != ESP_OK)
     {
         ESP_LOGE (TAG, "%s spp register failed: %s\n", __func__, esp_err_to_name (ret));
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     if ((ret = esp_spp_init (esp_spp_mode)) != ESP_OK)
     {
         ESP_LOGE (TAG, "%s spp init failed: %s\n", __func__, esp_err_to_name (ret));
         return;
     }
 
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     /* Set default parameters for Secure Simple Pairing */
     esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
     esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
@@ -1123,26 +1102,17 @@ extern "C" void app_main ()
      * Set default parameters for Legacy Pairing
      * Use variable pin, input pin code when pairing
      */
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin (pin_type, 0, pin_code);
 
-
-    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
-
-
-
-
     //ESP_ERROR_CHECK (init_camera ());
-
 
     // use motor controls to keep the connection alive
     while (true)
     {
         static int idle = 0;
 
-        ESP_LOGI (TAG, "connected: %d", robot->connected ());
         if (!robot->connected ())
         {
             idle++;
@@ -1164,7 +1134,5 @@ extern "C" void app_main ()
         }
 
         vTaskDelay (5000 / portTICK_PERIOD_MS);
-
-        //robot->status ();
     }
 }
