@@ -4,10 +4,45 @@ class Robot {
         this.left = null;
         this.right = null;
         this.token = 0;
-
-        this.stop ();
+        this.pending = null;
         let self = this;
 
+        // 'thread' to send motor control values to the robot
+        setInterval (function () {
+            if (self.pending) {
+                // send the control values if connected
+                if (self.connected) {
+                    $.get ('/drive', self.pending)
+                        .done (function (data) {
+                        })
+                        .fail (function (data) {
+                        });
+                }
+
+                // clear the pending values
+                self.pending = null;
+            }
+        }, 250);
+
+        // 'thread' to maintain a session with the robot
+        setInterval (function () {
+            $.getJSON ('/open?T=' + self.token, function (data) {
+                try {
+                    self.token = data.token;
+                    self.connected = (self.token != 0);
+                    if (self.connected) {
+                        $('.control').addClass ('ready');
+                        return;
+                    }
+                }
+                catch {
+                }
+                $('.control').removeClass ('ready');
+            });
+        }, 5 * 1000);
+
+
+        /*
         (function ping () {
             $.getJSON ('/open?T=' + self.token, function (data) {
                 try {
@@ -15,20 +50,21 @@ class Robot {
                     self.connected = (self.token != 0);
                     if (self.connected) {
                         $('.control').addClass ('ready');
-                        //$('#overlay').addClass ('hidden');
                     }
                     else {
                         $('.control').removeClass ('ready');
-                        //$('#overlay').removeClass ('hidden');
                     }
                 }
                 catch {
                 }
             });
 
-            setTimeout (ping, 1 * 1000);
+            setTimeout (ping, 5 * 1000);
         })();
+         */
 
+        // begin the session with the motors stopped
+        this.stop ();
     }
 
     stop () {
@@ -37,9 +73,9 @@ class Robot {
 
     update (x, y) {
         // determine the motor control values
-        let speed = y;
-        let left = speed + (x / 2);
-        let right = speed - (x / 2);
+        let speed = -100 * y;
+        let left = speed + (100 * x / 2);
+        let right = speed - (100 * x / 2);
 
         // swap controls if reversing
         if (speed < 0) {
@@ -75,19 +111,9 @@ class Robot {
 
         data['T'] = this.token;
 
-        // return if not connected
-        if (!this.connected) {
-            return;
-        }
+        this.pending = data;
 
-        // send the control values
-        $.get ('/drive', data)
-            .done (function (data) {
-                console.log (data);
-            })
-            .fail (function (data) {
-                console.log (data);
-            });
+        return;
     }
 };
 
@@ -115,18 +141,18 @@ class Joystick {
         //
         $(document)
             .on ('keydown', function (e) {
-                self.joystick.addClass('animated');
+                self.joystick.addClass ('animated');
                 self.keys[e.code] = true;
-                self.updateKeys();
+                self.updateKeys ();
             })
             .on ('keyup', function (e) {
                 self.keys[e.code] = false;
-                self.updateKeys();
+                self.updateKeys ();
             });
 
-        window.addEventListener('resize', () => {
-            self.joystick.removeClass('animated');
-            self.update({x: 0.5, y: 0.5});
+        window.addEventListener ('resize', () => {
+            self.joystick.removeClass ('animated');
+            self.update ({x: 0.5, y: 0.5});
         });
 
         //
@@ -135,20 +161,20 @@ class Joystick {
         this.touchpad
             .on ('pointerdown pointerenter pointermove', function (e) {
                 if (e.buttons === 1) {
-                    self.joystick.removeClass('animated');
-                    self.updateMouse(e);
+                    self.joystick.removeClass ('animated');
+                    self.updateMouse (e);
                 }
             })
             .on ('pointerup', function (e) {
-                self.joystick.addClass('animated');
-                self.update({x: 0.5, y: 0.5});
+                self.joystick.addClass ('animated');
+                self.update ({x: 0.5, y: 0.5});
             });
     }
 
-    updateKeys() {
+    updateKeys () {
         let updatedPosition = { x: 0.5, y: 0.5 };
 
-        Object.entries(this.keys).forEach(e => {
+        Object.entries (this.keys).forEach (e => {
             const key = e[0];
             const value = e[1];
 
@@ -158,71 +184,70 @@ class Joystick {
                 updatedPosition.x = this.keyPositions[key].x !== undefined ? this.keyPositions[key].x : updatedPosition.x;
                 updatedPosition.y = this.keyPositions[key].y !== undefined ? this.keyPositions[key].y : updatedPosition.y;
             }
-
         });
 
         if (this.keys['ArrowLeft'] && this.keys['ArrowRight']) updatedPosition.x = 0.5;
         if (this.keys['ArrowUp'] && this.keys['ArrowDown']) updatedPosition.y = 0.5;
 
-        this.update(updatedPosition);
+        this.update (updatedPosition);
     }
 
-    updateMouse(e) {
-        const touchpadWidth = this.touchpad.width();
-        const touchpadHeight = this.touchpad.height();
+    updateMouse (e) {
+        const touchpadWidth = this.touchpad.width ();
+        const touchpadHeight = this.touchpad.height ();
 
-        const joystickWidth = this.joystick.width();
-        const joystickHeight = this.joystick.height();
+        const joystickWidth = this.joystick.width ();
+        const joystickHeight = this.joystick.height ();
 
         let x = (e.offsetX - (joystickWidth / 2)) / (touchpadWidth - joystickWidth);
         let y = (e.offsetY - (joystickHeight / 2)) / (touchpadHeight - joystickHeight);
 
         // Clamp x/y from 0-1
-        x = Math.max(0, Math.min(x, 1));
-        y = Math.max(0, Math.min(y, 1));
+        x = Math.max (0, Math.min (x, 1));
+        y = Math.max (0, Math.min (y, 1));
 
-        const snappedPosition = this.snapHotspots({x, y});
-        this.update(snappedPosition);
+        const snappedPosition = this.snapHotspots ({x, y});
+        this.update (snappedPosition);
     }
 
-    distSq(x1, y1, x2, y2) {
+    distSq (x1, y1, x2, y2) {
         return ((x2-x1) * (x2-x1)) + ((y2-y1) * (y2-y1));
     }
 
-    checkSpot(pos, x2, y2) {
-        if (this.distSq(pos.x, pos.y, x2, y2) < 0.03) return { x: x2, y: y2 };
+    checkSpot (pos, x2, y2) {
+        if (this.distSq (pos.x, pos.y, x2, y2) < 0.03) return { x: x2, y: y2 };
         return pos;
     }
 
-    snapHotspots(position) {
+    snapHotspots (position) {
         let updatedPosition = { ...position };
 
         const hotspots = [
-            [0,0],      [0.5, 0],    [1, 0],
-            [0, 0.5],           ,  [1, 0.5],
-            [0, 1],     [0.5, 1],    [1, 1]
+            [0.0, 0.0], [0.5, 0.0], [1.0, 0.0],
+            [0.0, 0.5],           , [1.0, 0.5],
+            [0.0, 1.0], [0.5, 1.0], [1.0, 1.0]
         ];
 
-        hotspots.forEach(h => updatedPosition = this.checkSpot(updatedPosition, h[0], h[1]));
+        hotspots.forEach (h => updatedPosition = this.checkSpot (updatedPosition, h[0], h[1]));
 
         return updatedPosition;
     }
 
-    update(updatedPosition) {
-        const touchpadWidth = this.touchpad.width();
-        const touchpadHeight = this.touchpad.height();
+    update (updatedPosition) {
+        const touchpadWidth = this.touchpad.width ();
+        const touchpadHeight = this.touchpad.height ();
 
-        const joystickWidth = this.joystick.width();
-        const joystickHeight = this.joystick.height();
+        const joystickWidth = this.joystick.width ();
+        const joystickHeight = this.joystick.height ();
 
         // Double the set margin of 3%
         const totalMargin = '6%';
 
-        this.joystick.css('left', `calc(${updatedPosition.x} * (${touchpadWidth - joystickWidth}px - ${totalMargin}))`);
-        this.joystick.css('top', `calc(${updatedPosition.y} * (${touchpadHeight - joystickHeight}px - ${totalMargin}))`);
+        this.joystick.css ('left', `calc(${updatedPosition.x} * (${touchpadWidth - joystickWidth}px - ${totalMargin}))`);
+        this.joystick.css ('top', `calc(${updatedPosition.y} * (${touchpadHeight - joystickHeight}px - ${totalMargin}))`);
 
         // the lazy way to check differences for arbitray data
-        if (JSON.stringify(updatedPosition) !== JSON.stringify(this.position)) {
+        if (JSON.stringify (updatedPosition) !== JSON.stringify (this.position)) {
             this.position = updatedPosition;
             this.driver.update ((updatedPosition.x * 2) - 1, (updatedPosition.y * 2) - 1);
         }

@@ -1,5 +1,6 @@
 #include <string>
 
+#include "esp_log.h"
 #include "esp_spp_api.h"
 
 #include "Robot.h"
@@ -212,7 +213,7 @@ void Robot::command (uint8_t *data)
     {
         if (xSemaphoreTake (_semaphore, portMAX_DELAY))
         {
-            //esp_log_buffer_hex (TAG, data, length + 2);
+            esp_log_buffer_hex ("mindbridge", data, length + 2);
             esp_spp_write (_handle, length + 2, data);
             xSemaphoreGive (_semaphore);
         }

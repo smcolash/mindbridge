@@ -18,19 +18,30 @@
 #include "esp_http_server.h"
 #include "driver/gpio.h"
 #include "esp_camera.h"
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#include "esp_gap_bt_api.h"
+#include "esp_bt_device.h"
+#include "esp_spp_api.h"
+
+#include "LED.h"
+#include "Robot.h"
 
 // -------
 // logging
 // -------
 static const char *TAG = "mindbridge";
 
+LED *led;
+Robot *robot;
+
 // ----
 // wifi
 // ----
 
-#define EXAMPLE_ESP_WIFI_SSID       "mcolash"
-#define EXAMPLE_ESP_WIFI_PASS       "candyraisins"
-#define EXAMPLE_ESP_MAXIMUM_RETRY   5
+//#define EXAMPLE_ESP_WIFI_SSID       "mcolash"
+//#define EXAMPLE_ESP_WIFI_PASS       "candyraisins"
+//#define EXAMPLE_ESP_MAXIMUM_RETRY   5
 
 // ------
 // camera
@@ -63,11 +74,235 @@ static const char *TAG = "mindbridge";
 static int streaming = 0;
 static bool light = false;
 static bool active = false;
-static bool connected = false;
 static int left = 0;
 static int right = 0;
 static unsigned int token = 0;
 static int64_t last = 0;
+
+// ---------
+// bluetooth
+// ---------
+
+static const esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;
+static const esp_spp_sec_t sec_mask = ESP_SPP_SEC_AUTHENTICATE;
+static const esp_spp_role_t role_master = ESP_SPP_ROLE_MASTER;
+
+static esp_bd_addr_t peer_bd_addr;
+static uint8_t peer_bdname_len;
+static char peer_bdname[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
+static const char remote_device_name[] = "Chad";
+static const esp_bt_inq_mode_t inq_mode = ESP_BT_INQ_MODE_GENERAL_INQUIRY;
+static const uint8_t inq_len = 30;
+static const uint8_t inq_num_rsps = 0;
+
+static bool get_name_from_eir (uint8_t *eir, char *bdname, uint8_t *bdname_len)
+{
+    uint8_t *rmt_bdname = NULL;
+    uint8_t rmt_bdname_len = 0;
+
+    if (!eir)
+    {
+        ESP_LOGI (TAG, "error");
+        return false;
+    }
+
+    rmt_bdname = esp_bt_gap_resolve_eir_data (eir, ESP_BT_EIR_TYPE_CMPL_LOCAL_NAME, &rmt_bdname_len);
+    if (!rmt_bdname)
+    {
+        rmt_bdname = esp_bt_gap_resolve_eir_data (eir, ESP_BT_EIR_TYPE_SHORT_LOCAL_NAME, &rmt_bdname_len);
+    }
+    if (!rmt_bdname)
+    {
+        rmt_bdname = eir;
+        rmt_bdname_len = strlen ((char *) eir);
+    }
+
+    if (rmt_bdname)
+    {
+        if (rmt_bdname_len > ESP_BT_GAP_MAX_BDNAME_LEN)
+        {
+            rmt_bdname_len = ESP_BT_GAP_MAX_BDNAME_LEN;
+        }
+
+        if (bdname)
+        {
+            memcpy (bdname, rmt_bdname, rmt_bdname_len);
+            bdname[rmt_bdname_len] = '\0';
+        }
+        if (bdname_len)
+        {
+            *bdname_len = rmt_bdname_len;
+        }
+        return true;
+    }
+
+    ESP_LOGI (TAG, "error");
+    return false;
+}
+
+static void esp_spp_cb (esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
+{
+    switch (event)
+    {
+        case ESP_SPP_INIT_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_INIT_EVT");
+            esp_bt_dev_set_device_name (CONFIG_MINDBRIDGE_MDNS_HOSTNAME);
+            esp_bt_gap_set_scan_mode (ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+            //FIXME: remove for direct connect?
+            esp_bt_gap_start_discovery (inq_mode, inq_len, inq_num_rsps);
+            robot->connected (false, 0);
+
+            break;
+        case ESP_SPP_DISCOVERY_COMP_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_DISCOVERY_COMP_EVT status=%d scn_num=%d",
+                    param->disc_comp.status, param->disc_comp.scn_num);
+            if (param->disc_comp.status == ESP_SPP_SUCCESS)
+            {
+                ESP_LOGI (TAG, "SUCCCESS");
+                esp_spp_connect (sec_mask, role_master, param->disc_comp.scn[0], peer_bd_addr);
+                ESP_LOGI (TAG, "channel: %d", param->disc_comp.scn[0]);
+                esp_log_buffer_hex (TAG, peer_bd_addr, sizeof (peer_bd_addr));
+                esp_spp_connect (sec_mask, role_master, param->disc_comp.scn[0], peer_bd_addr);
+            }
+            break;
+        case ESP_SPP_OPEN_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_OPEN_EVT");
+            robot->connected (true, param->srv_open.handle);
+            led->on ();
+            break;
+        case ESP_SPP_CLOSE_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_CLOSE_EVT");
+            robot->connected (false, 0);
+            esp_bt_gap_start_discovery (inq_mode, inq_len, inq_num_rsps);
+            break;
+        case ESP_SPP_START_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_START_EVT");
+            break;
+        case ESP_SPP_CL_INIT_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_CL_INIT_EVT");
+            break;
+        case ESP_SPP_DATA_IND_EVT:
+            if (!robot->process (param->data_ind.handle, param->data_ind.len, param->data_ind.data))
+            {
+                ESP_LOGI (TAG, "ESP_SPP_DATA_IND_EVT");
+                esp_log_buffer_hex (TAG, param->data_ind.data, param->data_ind.len);
+            }
+            break;
+        case ESP_SPP_CONG_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_CONG_EVT cong=%d", param->cong.cong);
+            break;
+        case ESP_SPP_WRITE_EVT:
+            //ESP_LOGI (TAG, "ESP_SPP_WRITE_EVT len=%d cong=%d", param->write.len , param->write.cong);
+            break;
+        case ESP_SPP_SRV_OPEN_EVT:
+            ESP_LOGI (TAG, "ESP_SPP_SRV_OPEN_EVT");
+            break;
+        default:
+            break;
+    }
+}
+
+static void esp_bt_gap_cb (esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
+{
+    switch (event)
+    {
+        case ESP_BT_GAP_DISC_RES_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_DISC_RES_EVT");
+            esp_log_buffer_hex (TAG, param->disc_res.bda, ESP_BD_ADDR_LEN);
+            for (int i = 0; i < param->disc_res.num_prop; i++){
+                esp_log_buffer_hex (TAG, param->disc_res.prop[i].val, param->disc_res.prop[i].len);
+
+                //ESP_LOGI (TAG, "type = %d", param->disc_res.prop[i].type);
+                if (param->disc_res.prop[i].type == ESP_BT_GAP_DEV_PROP_BDNAME)
+                {
+                    ESP_LOGI (TAG, "++ name: %s %d",
+                            (char *) param->disc_res.prop[i].val,
+                            param->disc_res.prop[i].len);
+                }
+
+                //if (param->disc_res.prop[i].type == ESP_BT_GAP_DEV_PROP_EIR
+                if (param->disc_res.prop[i].type == ESP_BT_GAP_DEV_PROP_BDNAME
+                        && get_name_from_eir ((uint8_t*) param->disc_res.prop[i].val, peer_bdname, &peer_bdname_len))
+                {
+                    //ESP_LOGI (TAG, "====================");
+
+                    esp_log_buffer_char (TAG, peer_bdname, peer_bdname_len);
+                    //ESP_LOGI (TAG, "** name: %s", peer_bdname);
+
+                    if (strlen(robot->name ().c_str ()) == peer_bdname_len
+                            && strncmp(peer_bdname, robot->name ().c_str (), peer_bdname_len) == 0)
+                    {
+
+                        ESP_LOGI (TAG, "CONNECTED AND READY");
+
+                        memcpy (peer_bd_addr, param->disc_res.bda, ESP_BD_ADDR_LEN);
+                        esp_spp_start_discovery (peer_bd_addr);
+                        esp_bt_gap_cancel_discovery ();
+                        ESP_LOGI (TAG, "NEXT STEP");
+                    }
+                }
+            }
+            break;
+        case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_DISC_STATE_CHANGED_EVT");
+            break;
+        case ESP_BT_GAP_RMT_SRVCS_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_RMT_SRVCS_EVT");
+            break;
+        case ESP_BT_GAP_RMT_SRVC_REC_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_RMT_SRVC_REC_EVT");
+            break;
+        case ESP_BT_GAP_AUTH_CMPL_EVT:
+            {
+                if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS)
+                {
+                    ESP_LOGI (TAG, "authentication success: %s", param->auth_cmpl.device_name);
+                    esp_log_buffer_hex (TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
+                }
+                else
+                {
+                    ESP_LOGE (TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
+                }
+                break;
+            }
+        case ESP_BT_GAP_PIN_REQ_EVT:
+            {
+                ESP_LOGI (TAG, "ESP_BT_GAP_PIN_REQ_EVT min_16_digit:%d", param->pin_req.min_16_digit);
+                if (param->pin_req.min_16_digit)
+                {
+                    ESP_LOGI (TAG, "Input pin code: 0000 0000 0000 0000");
+                    esp_bt_pin_code_t pin_code = {0};
+                    esp_bt_gap_pin_reply(param->pin_req.bda, true, 16, pin_code);
+                }
+                else
+                {
+                    ESP_LOGI (TAG, "Input pin code: 1234");
+                    esp_bt_pin_code_t pin_code;
+                    pin_code[0] = '1';
+                    pin_code[1] = '2';
+                    pin_code[2] = '3';
+                    pin_code[3] = '4';
+                    esp_bt_gap_pin_reply(param->pin_req.bda, true, 4, pin_code);
+                }
+                break;
+            }
+
+        case ESP_BT_GAP_CFM_REQ_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", param->cfm_req.num_val);
+            esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
+            break;
+        case ESP_BT_GAP_KEY_NOTIF_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_KEY_NOTIF_EVT passkey:%d", param->key_notif.passkey);
+            break;
+        case ESP_BT_GAP_KEY_REQ_EVT:
+            ESP_LOGI (TAG, "ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!");
+            break;
+
+        default:
+            ESP_LOGI (TAG, "CB default: %s %d %d", __FUNCTION__, __LINE__, event);
+            break;
+    }
+}
 
 // ----------
 // web server
@@ -151,7 +386,7 @@ static esp_err_t file_get_handler (httpd_req_t *req)
 void produce_status (httpd_req_t *request, bool authorized = false)
 {
     // allow 5 seconds of inactivity
-    if ((esp_timer_get_time () - last) > (5 * 1e6))
+    if ((esp_timer_get_time () - last) > (10 * 1e6))
     {
         active = false;
         token = 0;
@@ -181,7 +416,7 @@ void produce_status (httpd_req_t *request, bool authorized = false)
                 "\"light\": %d, "
                 "\"left\": %d, "
                 "\"right\": %d"
-            "}", active, connected, temp, streaming, light, left, right);
+            "}", active, robot->connected (), temp, streaming, light, left, right);
     httpd_resp_send (request, response, strlen (response));
 
     return;
@@ -381,14 +616,14 @@ static esp_err_t drive_get_handler (httpd_req_t *request)
                     if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK)
                     {
                         int8_t speed = (int8_t) MIN (100, MAX (-100, strtol (parameter, &temp, 10)));
-                        //robot->motor (LEFT_MOTOR, speed);
+                        robot->motor (LEFT_MOTOR, speed);
                         left = speed;
                     }
 
                     if (httpd_query_key_value (buffer, "R", parameter, sizeof (parameter)) == ESP_OK)
                     {
                         int8_t speed = (int8_t) MIN (100, MAX (-100, strtol (parameter, &temp, 10)));
-                        //robot->motor (RIGHT_MOTOR, speed);
+                        robot->motor (RIGHT_MOTOR, speed);
                         right = speed;
                     }
                 }
@@ -566,7 +801,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY)
+        if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY)
         {
             esp_wifi_connect();
             s_retry_num++;
@@ -607,8 +842,8 @@ void wifi_init_sta (void)
     ESP_LOGI (TAG, "%s %d", __FUNCTION__, __LINE__);
     wifi_config_t wifi_config;
     memset (&wifi_config, 0x00, sizeof (wifi_config));
-    sprintf ((char *) wifi_config.sta.ssid, EXAMPLE_ESP_WIFI_SSID);
-    sprintf ((char *) wifi_config.sta.password, EXAMPLE_ESP_WIFI_PASS);
+    sprintf ((char *) wifi_config.sta.ssid, CONFIG_ESP_WIFI_SSID);
+    sprintf ((char *) wifi_config.sta.password, CONFIG_ESP_WIFI_PASSWORD);
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     wifi_config.sta.pmf_cfg.capable = true;
     wifi_config.sta.pmf_cfg.required = false;
@@ -631,11 +866,11 @@ void wifi_init_sta (void)
      * happened. */
     if (bits & WIFI_CONNECTED_BIT)
     {
-        ESP_LOGI (TAG, "connected to ap SSID:%s", EXAMPLE_ESP_WIFI_SSID);
+        ESP_LOGI (TAG, "connected to ap SSID:%s", CONFIG_ESP_WIFI_SSID);
     }
     else if (bits & WIFI_FAIL_BIT)
     {
-        ESP_LOGI (TAG, "failed to connect to SSID:%s", EXAMPLE_ESP_WIFI_SSID);
+        ESP_LOGI (TAG, "failed to connect to SSID:%s", CONFIG_ESP_WIFI_SSID);
     }
     else
     {
@@ -730,6 +965,7 @@ static esp_err_t init_camera ()
 
 extern "C" void app_main ()
 {
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     //
     // initialize NVS
     //
@@ -741,6 +977,15 @@ extern "C" void app_main ()
     }
     ESP_ERROR_CHECK (ret);
 
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    // create the LED interface
+    led = new LED ((gpio_num_t) CONFIG_MINDBRIDGE_ACTIVITY_LED);
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    // create the robot interface
+    robot = new Robot ("Chad", led);
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     //
     // start WIFI and connect to the access point
     //
@@ -766,6 +1011,7 @@ extern "C" void app_main ()
     // configure the filesystem
     // ------------------------
 
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     esp_vfs_spiffs_conf_t spiffs_conf =
     {
         .base_path = "/local",
@@ -795,11 +1041,13 @@ extern "C" void app_main ()
         ESP_LOGI (TAG, "Partition size: total: %d, used: %d", total, used);
     }
 
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
     // ----------
     // web server
     // ----------
     server = start_webserver ();
 
+#if 0
     //configure GPIO
     gpio_config_t io_conf;
     io_conf.intr_type = (gpio_int_type_t) GPIO_PIN_INTR_DISABLE;
@@ -809,12 +1057,114 @@ extern "C" void app_main ()
     io_conf.pull_up_en = (gpio_pullup_t) 0;
 
     gpio_config (&io_conf);
+#endif
 
-    ESP_ERROR_CHECK (init_camera ());
-    //camera = new Camera ();
 
-    while (1)
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    ESP_ERROR_CHECK (esp_bt_controller_mem_release (ESP_BT_MODE_BLE));
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT ();
+    if ((ret = esp_bt_controller_init (&bt_cfg)) != ESP_OK)
     {
-        vTaskDelay(5000 / portTICK_RATE_MS);
+        ESP_LOGE (TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    if ((ret = esp_bt_controller_enable (ESP_BT_MODE_CLASSIC_BT)) != ESP_OK)
+    {
+        ESP_LOGE (TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    if ((ret = esp_bluedroid_init ()) != ESP_OK)
+    {
+        ESP_LOGE (TAG, "%s initialize bluedroid failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    if ((ret = esp_bluedroid_enable ()) != ESP_OK)
+    {
+        ESP_LOGE (TAG, "%s enable bluedroid failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    if ((ret = esp_bt_gap_register_callback (esp_bt_gap_cb)) != ESP_OK)
+    {
+        ESP_LOGE (TAG, "%s gap register failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    if ((ret = esp_spp_register_callback (esp_spp_cb)) != ESP_OK)
+    {
+        ESP_LOGE (TAG, "%s spp register failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    if ((ret = esp_spp_init (esp_spp_mode)) != ESP_OK)
+    {
+        ESP_LOGE (TAG, "%s spp init failed: %s\n", __func__, esp_err_to_name (ret));
+        return;
+    }
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    /* Set default parameters for Secure Simple Pairing */
+    esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
+    esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
+    esp_bt_gap_set_security_param (param_type, &iocap, sizeof (uint8_t));
+
+    /*
+     * Set default parameters for Legacy Pairing
+     * Use variable pin, input pin code when pairing
+     */
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+    esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
+    esp_bt_pin_code_t pin_code;
+    esp_bt_gap_set_pin (pin_type, 0, pin_code);
+
+
+    ESP_LOGI (TAG, "%s %d" , __FUNCTION__, __LINE__);
+
+
+
+
+    //ESP_ERROR_CHECK (init_camera ());
+
+
+    // use motor controls to keep the connection alive
+    while (true)
+    {
+        static int idle = 0;
+
+        ESP_LOGI (TAG, "connected: %d", robot->connected ());
+        if (!robot->connected ())
+        {
+            idle++;
+
+            if (idle > (60.0 / 5))
+            {
+                ESP_LOGI (TAG, "restart discovery");
+                esp_bt_gap_start_discovery (inq_mode, inq_len, inq_num_rsps);
+
+                idle = 0;
+            }
+        }
+        else
+        {
+            idle = 0;
+
+            robot->keepalive ();
+            robot->battery ();
+        }
+
+        vTaskDelay (5000 / portTICK_PERIOD_MS);
+
+        //robot->status ();
     }
 }
