@@ -26,7 +26,7 @@ The esp32-cam board only needs 5v power and ground connections at run-time.
 The code configures the camera to flip and rotate the image so the board
 needs to be on the robot as shown.
 
-![exp32-cam](assets/esp32-cam.png)
+![exp32-cam](https://raw.githubusercontent.com/smcolash/mindbridge/master/assets/esp32cam-90.png)
 
 ## Operation
 
