@@ -7,7 +7,7 @@ The code is written for and built using the [Espresif development framework and
 tools](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/index.html)
 and not the higher-level Arduino environment.
 
-## Configuration
+## Configuration and Build
 
 The project needs to be configured before building such that the code knows
 the local WiFi credentials and the Bluetooth SSP name of the robot ot control.
@@ -19,6 +19,10 @@ WiFi Configuration
 
 Bluetooth Configuration
 * name
+
+The code is built and flashed to the board using the idf.py tool.
+
+> idf.py --port COM9 menuconfig build flash
 
 ## Physical Details
 
