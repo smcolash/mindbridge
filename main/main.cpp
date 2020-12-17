@@ -938,7 +938,7 @@ static camera_config_t camera_config = {
     .frame_size = FRAMESIZE_VGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 63, // 12, //0-63 lower number means higher quality
-    .fb_count = 2 // 1       //if more than one, i2s runs in continuous mode. Use only with JPEG
+    .fb_count = 1 // 1       //if more than one, i2s runs in continuous mode. Use only with JPEG
 };
 
 static esp_err_t init_camera ()
@@ -1106,7 +1106,7 @@ extern "C" void app_main ()
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin (pin_type, 0, pin_code);
 
-    //ESP_ERROR_CHECK (init_camera ());
+    ESP_ERROR_CHECK (init_camera ());
 
     // use motor controls to keep the connection alive
     while (true)
