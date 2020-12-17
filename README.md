@@ -28,6 +28,8 @@ needs to be on the robot as shown.
 
 ![exp32-cam](https://raw.githubusercontent.com/smcolash/mindbridge/master/assets/esp32cam-90.png)
 
+Image credit to [Random Nerd Tutorials](https://randomnerdtutorials.com/).
+
 ## Operation
 
 The code runs on the ESP32 to provide a web interface with streaming video
