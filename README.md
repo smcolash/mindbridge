@@ -20,6 +20,14 @@ WiFi Configuration
 Bluetooth Configuration
 * name
 
+## Physical Details
+
+The esp32-cam board only needs 5v power and ground connections at run-time.
+The code configures the camera to flip and rotate the image so the board
+needs to be on the robot as shown.
+
+![exp32-cam](assets/esp32-cam.png)
+
 ## Operation
 
 The code runs on the ESP32 to provide a web interface with streaming video
