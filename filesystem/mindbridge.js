@@ -1,67 +1,47 @@
 class Robot {
     constructor () {
-        this.connected = false;
+        this.scale = 50;
         this.left = null;
         this.right = null;
+        this.connected = false;
         this.token = 0;
-        this.pending = null;
         let self = this;
 
         // 'thread' to send motor control values to the robot
         setInterval (function () {
-            if (self.pending) {
-                // send the control values if connected
-                if (self.connected) {
-                    $.get ('/drive', self.pending)
-                        .done (function (data) {
-                        })
-                        .fail (function (data) {
-                        });
-                }
+            // send the control values if connected
+            if (self.connected) {
+                let data = {};
+                data['L'] = this.left;
+                data['R'] = this.right;
+                data['T'] = this.token;
 
-                // clear the pending values
-                self.pending = null;
+                $.get ('/drive', data)
+                    .done (function (data) {
+                    })
+                    .fail (function (data) {
+                    });
             }
         }, 250);
 
         // 'thread' to maintain a session with the robot
         setInterval (function () {
-            $.getJSON ('/open?T=' + self.token, function (data) {
-                try {
-                    self.token = data.token;
-                    self.connected = (self.token != 0);
-                    if (self.connected) {
-                        $('.control').addClass ('ready');
-                        return;
+            if (!self.connected) {
+                $.getJSON ('/open?T=' + self.token, function (data) {
+                    try {
+                        self.token = data.token;
+                        self.connected = (self.token != 0);
+                        if (self.connected) {
+                            $('.control').addClass ('ready');
+                            return;
+                        }
                     }
-                }
-                catch {
-                }
-                $('.control').removeClass ('ready');
-            });
+                    catch {
+                    }
+                    $('.control').removeClass ('ready');
+                });
+            }
         }, 5 * 1000);
-
-
-        /*
-        (function ping () {
-            $.getJSON ('/open?T=' + self.token, function (data) {
-                try {
-                    self.token = data.token;
-                    self.connected = (self.token != 0);
-                    if (self.connected) {
-                        $('.control').addClass ('ready');
-                    }
-                    else {
-                        $('.control').removeClass ('ready');
-                    }
-                }
-                catch {
-                }
-            });
-
-            setTimeout (ping, 5 * 1000);
-        })();
-         */
 
         // begin the session with the motors stopped
         this.stop ();
@@ -73,9 +53,9 @@ class Robot {
 
     update (x, y) {
         // determine the motor control values
-        let speed = -100 * y;
-        let left = speed + (100 * x / 2);
-        let right = speed - (100 * x / 2);
+        let speed = -1 * this.scale * y;
+        let left = speed + (this.scale * x / 2);
+        let right = speed - (this.scale * x / 2);
 
         // swap controls if reversing
         if (speed < 0) {
@@ -89,29 +69,8 @@ class Robot {
         right = Math.round (right / 10) * 10;
 
         // limit the range to -100 .. 100
-        left = Math.round (Math.min (100, Math.max (-100, left)));
-        right = Math.round (Math.min (100, Math.max (-100, right)));
-
-        // avoid sending duplicate values
-        let data = {};
-
-        if (this.left != left) {
-            data['L'] = left;
-            this.left = left;
-        }
-
-        if (this.right != right) {
-            data['R'] = right;
-            this.right = right;
-        }
-
-        if (Object.keys (data).length == 0) {
-            return;
-        }
-
-        data['T'] = this.token;
-
-        this.pending = data;
+        this.left = Math.round (Math.min (100, Math.max (-100, left)));
+        this.right = Math.round (Math.min (100, Math.max (-100, right)));
 
         return;
     }
@@ -120,7 +79,7 @@ class Robot {
 class Joystick {
     constructor (element, driver) {
         this.touchpad = element;
-        this.joystick = element.find('#joystick');
+        this.joystick = element.find ('#joystick');
 
         this.driver = driver;
 
