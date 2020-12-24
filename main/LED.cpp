@@ -12,9 +12,9 @@ void LED_task (void *parameters)
 
         if (xSemaphoreTake (led->_semaphore, portMAX_DELAY))
         {
-            if (led->_count > 0)
+            if (led->_msec > 0)
             {
-                led->_count = MAX (0, led->_count - 1);
+                led->_msec = MAX (0, led->_msec - led->_tick);
                 output = true;
             }
 
@@ -23,14 +23,14 @@ void LED_task (void *parameters)
 
         gpio_set_level (led->_pin, output);
 
-        vTaskDelay (10 / portTICK_PERIOD_MS);
+        vTaskDelay (led->_tick / portTICK_PERIOD_MS);
     }
 }
 
-LED::LED (gpio_num_t pin, int count)
+LED::LED (gpio_num_t pin, int msec)
 {
     _pin = pin;
-    _count = count;
+    _msec = msec;
 
     // configure the LED
     gpio_config_t io_conf;
@@ -63,12 +63,12 @@ LED::~LED ()
     vSemaphoreDelete (_semaphore);
 }
 
-void LED::on (int count)
+void LED::on (int msec)
 {
-    _count = _count + count;
+    _msec = _msec + msec;
 }
 
 void LED::off (void)
 {
-    _count = 0;
+    _msec = 0;
 }

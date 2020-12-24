@@ -11,13 +11,13 @@ class LED
     public:
         LED (gpio_num_t pin, int count = 0);
         ~LED ();
-        void on (int count = 1);
+        void on (int msec = 10);
         void off (void);
     public:
         SemaphoreHandle_t _semaphore;
         TaskHandle_t _task;
         gpio_num_t _pin;
-        int _count;
+        int _msec;
 };
 
 #endif
