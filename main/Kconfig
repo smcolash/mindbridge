@@ -1,13 +1,13 @@
 menu "Robot configuration"
 
     config MINDBRIDGE_MOTOR_LEFT
-        string "Mindstorms NXT left motor port"
+        int "Mindstorms NXT left motor port"
         default 1
         help
             Specify the port the left motor is connected to.
 
     config MINDBRIDGE_MOTOR_RIGHT
-        string "Mindstorms NXT right motor port"
+        int "Mindstorms NXT right motor port"
         default 2
         help
             Specify the port the right motor is connected to.
@@ -31,6 +31,12 @@ menu "Control Bridge Configuration"
     config MINDBRIDGE_ACTIVITY_LED
         int "Mindbridge activity LED"
         default 33
+        help
+            Specify the GPIO line for an activity LED. 2=blue, 33=red, 4=white.
+
+    config MINDBRIDGE_HEADLIGHT_LED
+        int "Mindbridge headlight LED"
+        default 4
         help
             Specify the GPIO line for an activity LED. 2=blue, 33=red, 4=white.
 

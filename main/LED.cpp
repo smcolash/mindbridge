@@ -31,6 +31,7 @@ LED::LED (gpio_num_t pin, int msec)
 {
     _pin = pin;
     _msec = msec;
+    _tick = 10;
 
     // configure the LED
     gpio_config_t io_conf;

@@ -18,6 +18,7 @@ class LED
         TaskHandle_t _task;
         gpio_num_t _pin;
         int _msec;
+        int _tick;
 };
 
 #endif

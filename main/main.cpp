@@ -33,6 +33,7 @@
 static const char *TAG = "mindbridge";
 
 LED *led;
+LED *headlight;
 Robot *robot;
 
 // ----
@@ -46,9 +47,6 @@ Robot *robot;
 // ------
 // camera
 // ------
-
-#define WHITE_LED               (gpio_num_t) 4
-#define GPIO_OUTPUT_PIN_SEL     (1ULL << WHITE_LED)
 
 // ESP32Cam (AiThinker) PIN Map
 
@@ -72,7 +70,6 @@ Robot *robot;
 
 // global status variables
 static int streaming = 0;
-static bool light = false;
 static bool active = false;
 static int left = 0;
 static int right = 0;
@@ -390,7 +387,6 @@ void produce_status (httpd_req_t *request, bool authorized = false)
     {
         active = false;
         token = 0;
-        light = 0;
         left = 0;
         right = 0;
     }
@@ -413,10 +409,9 @@ void produce_status (httpd_req_t *request, bool authorized = false)
                 "\"connected\": %d, "
                 "\"token\": %d, "
                 "\"streaming\": %d, "
-                "\"light\": %d, "
                 "\"left\": %d, "
                 "\"right\": %d"
-            "}", active, robot->connected (), temp, streaming, light, left, right);
+            "}", active, robot->connected (), temp, streaming, left, right);
     httpd_resp_send (request, response, strlen (response));
 
     return;
@@ -481,44 +476,6 @@ static esp_err_t status_get_handler (httpd_req_t *request)
     return (ESP_OK);
 }
 
-// light control URL
-static esp_err_t light_get_handler (httpd_req_t *request)
-{
-    // get the parameters
-    size_t length = httpd_req_get_url_query_len (request);
-    if (length > 0)
-    {
-        char *buffer = (char *) malloc (length + 1);
-        if (httpd_req_get_url_query_str (request, buffer, length + 1) == ESP_OK)
-        {
-            char parameter[32];
-            char *temp;
-
-            if (httpd_query_key_value (buffer, "T", parameter, sizeof (parameter)) == ESP_OK)
-            {
-                unsigned int requested = strtol (parameter, &temp, 10);
-                if ((requested != 0) && (requested == token))
-                {
-                    if (httpd_query_key_value (buffer, "L", parameter, sizeof (parameter)) == ESP_OK)
-                    {
-                        light = (((int8_t) strtol (parameter, &temp, 10)) != 0);
-                        gpio_set_level (WHITE_LED, light);
-
-                        last = esp_timer_get_time ();
-                    }
-                }
-            }
-        }
-
-        free (buffer);
-    }
-
-    produce_status (request);
-
-    // all done
-    return (ESP_OK);
-}
-
 extern "C" int httpd_default_send (httpd_handle_t hd, int sockfd, const char *buf, size_t buf_len, int flags);
 
 int httpd_default_send_str (httpd_handle_t hd, int sockfd, const char *buf, int flags)
@@ -539,6 +496,7 @@ static void emit_video_frame (void *argument)
     httpd_handle_t hd = parameters->hd;
     int fd = parameters->fd;
 
+    headlight->on (500); // turn on the headlight for 500ms
     camera_fb_t *fb = esp_camera_fb_get ();
 
     if (fb)
@@ -711,13 +669,6 @@ static const httpd_uri_t status_uri = {
     .user_ctx   = (void *) "status handler"
 };
 
-static const httpd_uri_t light_uri = {
-    .uri        = "/light",
-    .method     = HTTP_GET,
-    .handler    = light_get_handler,
-    .user_ctx   = (void *) "light handler"
-};
-
 static const httpd_uri_t video_uri = {
     .uri        = "/video",
     .method     = HTTP_GET,
@@ -759,7 +710,6 @@ static httpd_handle_t start_webserver (void)
         // control handlers
         httpd_register_uri_handler (server, &open_uri);
         httpd_register_uri_handler (server, &status_uri);
-        httpd_register_uri_handler (server, &light_uri);
         httpd_register_uri_handler (server, &video_uri);
         httpd_register_uri_handler (server, &drive_uri);
 
@@ -971,8 +921,9 @@ extern "C" void app_main ()
     }
     ESP_ERROR_CHECK (ret);
 
-    // create the LED interface
+    // create the LED interfaces
     led = new LED ((gpio_num_t) CONFIG_MINDBRIDGE_ACTIVITY_LED);
+    headlight = new LED ((gpio_num_t) CONFIG_MINDBRIDGE_HEADLIGHT_LED);
 
     // create the robot interface
     robot = new Robot ("Chad", led);
