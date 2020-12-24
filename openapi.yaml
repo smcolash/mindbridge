@@ -148,34 +148,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/StatusResponse'
 
-  /light:
-    get:
-      tags:
-        - services
-      summary: control the robot camera LED
-      description: Control the robot camera LED.
-      parameters:
-      - in: query
-        name: T
-        schema:
-          type: integer
-          example: 1234
-      - in: query
-        name: L
-        schema:
-          type: boolean
-          example: 1
-      responses:
-        '200':
-          description: status response
-          content:
-            application/json:
-              schema:
-                description: status response
-                type: object
-                items:
-                  $ref: '#/components/schemas/StatusResponse'
-
   /video:
     get:
       tags:
@@ -254,34 +226,12 @@ components:
         streaming:
           description: zxcv
           type: integer
-          example: 1234
-        light:
-          description: zxcv
-          type: integer
-          example: 1234
+          example: 1
         left:
-          description: zxcv
+          description: current left drive value
           type: integer
-          example: 1234
+          example: 0
         right:
-          description: zxcv
+          description: current right drive value
           type: integer
-          example: 1234
-
-    OpenParameters:
-      description: current status
-      type: object
-      properties:
-        VIEW:
-          description: the name of the collection
-          type: string
-          example: "revo_ct.42"
-
-    DriveParameters:
-      description: current status
-      type: object
-      properties:
-        VIEW:
-          description: the name of the collection
-          type: string
-          example: "revo_ct.42"
+          example: 0
