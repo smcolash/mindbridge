@@ -1,16 +1,16 @@
 class Robot {
     constructor () {
         this.scale = 50;
-        this.left = null;
-        this.right = null;
-        this.connected = false;
         this.token = 0;
+        this.stop ();
         let self = this;
+
+        $('.control').removeClass ('ready');
 
         // 'thread' to send motor control values to the robot
         setInterval (function () {
             // send the control values if connected
-            if (self.connected) {
+            if (self.token) {
                 let data = {};
                 data['L'] = this.left;
                 data['R'] = this.right;
@@ -24,27 +24,23 @@ class Robot {
             }
         }, 250);
 
-        // 'thread' to maintain a session with the robot
+        // 'thread' to request a session with the robot
         setInterval (function () {
-            if (!self.connected) {
-                $.getJSON ('/open?T=' + self.token, function (data) {
-                    try {
+            if (self.token) {
+                return;
+            }
+
+            $.getJSON ('/open?T=' + self.token)
+                .done (function (data) {
+                    if (data.token) {
                         self.token = data.token;
-                        self.connected = (self.token != 0);
-                        if (self.connected) {
-                            $('.control').addClass ('ready');
-                            return;
-                        }
+                        $('.control').addClass ('ready');
                     }
-                    catch {
-                    }
+                })
+                .fail (function () {
                     $('.control').removeClass ('ready');
                 });
-            }
-        }, 5 * 1000);
-
-        // begin the session with the motors stopped
-        this.stop ();
+        }, 1 * 1000);
     }
 
     stop () {
